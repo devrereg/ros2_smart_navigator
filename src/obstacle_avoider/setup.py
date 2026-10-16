@@ -25,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'manual_drive = obstacle_avoider.manual_drive:main',
+            'avoider = obstacle_avoider.avoider:main',
         ],
     },
 )
