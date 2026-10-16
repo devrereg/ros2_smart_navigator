@@ -35,7 +35,7 @@ ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 |---|---|---|---|---|---|
 | A (나) | Ubuntu 24.04 | Jazzy | Harmonic (Sim 8.15.0) | rmw_fastrtps_cpp (기본값) | |
 | B (태호님) | | | | | |
-| C (제경님) | | | | | |
+| C (제경님) | Ubuntu 24.04.5 | Jazzy | Harmonic (Sim 8.15.0) | rmw_fastrtps_cpp | |
 
 > 각자 위 명령 결과를 표에 채운 뒤 PR로 공유한다. 배포판/Gazebo 버전이 다른 팀원이 있으면 1일차 내에 맞춘다.
 
