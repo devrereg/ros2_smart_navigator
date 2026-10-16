@@ -4,7 +4,7 @@
 
 ## 통합 테스트 시나리오 (초안)
 
-1. 시뮬레이션 실행: `ros2 launch robotnik_lab_world robotnik_lab_world.launch.py`
+1. 시뮬레이션 실행: `export TURTLEBOT3_MODEL=burger` 후 `ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py` (자체 제작 맵 준비 후 갱신)
 2. 토픽 확인: `ros2 topic list`, `ros2 topic info /scan`, `ros2 topic info /cmd_vel`
 3. 장애물 감지 테스트 (3일차 이후, B 작성)
 4. 장애물 회피 테스트 (4~5일차 이후, C 작성)

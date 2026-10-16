@@ -1,0 +1,57 @@
+# 작업 히스토리 (History)
+
+> 프로젝트의 변경사항, 결정 사항, 남은 작업을 기록한다. 바이브 코딩(Claude Code) 시 **먼저 이 문서를 읽고** 맥락을 파악한 뒤 작업한다.
+> 작업 기록은 날짜별 파일로 나누어 이 디렉토리에 저장한다. 이 `README.md`에는 현재 상태 요약과 기록 목록만 둔다.
+
+---
+
+## 현재 상태 요약
+
+| 항목 | 상태 |
+|---|---|
+| 환경 | ROS 2 Jazzy, Gazebo Sim 8.15.0 (Harmonic), RMW `rmw_fastrtps_cpp` (A 환경 확인 완료) |
+| 로봇 / 맵 | TurtleBot3 Burger / TurtleBot3 기본 월드 (`turtlebot3_world`), 추후 자체 제작 맵 예정 |
+| 시뮬레이션 실행 | A 환경에서 실행 및 브리지 연결 확인 완료 |
+| 구현 코드 | 없음 (`src/sensor_monitor`, `src/obstacle_avoider`, `src/experiment_monitor`는 빈 폴더) |
+| `/scan` | `sensor_msgs/msg/LaserScan`, QoS Reliable·Volatile |
+| `/cmd_vel` | **`geometry_msgs/msg/TwistStamped`** (`Twist` 아님), QoS Reliable·Volatile |
+| 진행 중 브랜치 | `1-ryubengock` (이슈 #1), 커밋 전 변경사항 있음 |
+
+### 알아야 할 핵심 사실
+
+- `/cmd_vel`은 `TwistStamped`다. 속도는 `msg.twist.linear.x`, `msg.twist.angular.z`에 넣고 `msg.header.stamp`를 채운다.
+- Robotnik 월드(`robotnik_gazebo_worlds`)의 `robotnik_lab_world`는 ROS 1(catkin, Gazebo Classic) 기반이라 Jazzy에서 빌드되지 않는다. 사용하지 않는다.
+- Jazzy의 `ros2`는 `--version` 옵션을 지원하지 않는다. 버전은 `ros2 doctor --report`로 확인한다.
+
+### 남은 작업 / 열린 질문
+
+- [ ] 맵 제작 방향 확정 (팀원과 상의, 담당·일정 미정)
+- [ ] B, C의 `docs/environment.md` 환경 기록 표 채우기
+- [ ] 클린 환경에서 `docs/getting_started.md`의 설치 절차 검증
+- [ ] 2일차 업무 시작: B는 LaserScan 구독 노드, C는 속도 명령 발행 노드
+
+---
+
+## 기록 목록 (최신순)
+
+| 날짜 | 담당 | 제목 | 파일 |
+|---|---|---|---|
+| 2026-10-16 | A | 환경 확인 및 맵 변경, 문서 정비 | [2026-10-16-env-and-map-change.md](2026-10-16-env-and-map-change.md) |
+
+---
+
+## 작성 규칙
+
+Claude Code로 작업할 때 이 디렉토리를 아래 방식으로 관리한다.
+
+1. **작업 시작 전:** 이 `README.md`의 "현재 상태 요약"과 "남은 작업", 그리고 최신 기록 파일을 읽는다.
+2. **작업 후:** 새 기록 파일을 만든다.
+   - 파일명: `YYYY-MM-DD-<영문-소문자-요약>.md` (예: `2026-10-17-scan-subscriber.md`). 같은 날 여러 개면 요약으로 구분한다.
+   - 첫 줄: `# YYYY-MM-DD — 제목 (담당자)`
+   - 포함할 것: 브랜치/이슈, **변경사항**(코드·문서·설정 등 저장소에 반영된 변경), 결정 사항과 **이유**, 미커밋 변경.
+   - 제외할 것: 실행·동작 확인, 버전 확인, 테스트 실행 같은 **확인 작업** 자체. 확인 결과가 앞으로 작업에 영향을 주는 핵심 사실이면 "현재 상태 요약"의 "알아야 할 핵심 사실"에 적는다.
+   - 코드나 git 로그에서 알 수 있는 단순 변경 나열은 피하고, 나중에 맥락이 필요한 내용 위주로 쓴다.
+3. **README 갱신:** "기록 목록" 표 맨 위에 새 행을 추가하고, "현재 상태 요약"과 "남은 작업"을 최신 상태로 고친다. 끝난 항목은 체크하거나 지운다.
+4. **프로젝트와 관련된 내용만 기록한다.** 개인 PC의 환경 설정(`~/.bashrc` 수정, 계정 로그인, 패키지 설치 등)과 git에 올라가지 않는 로컬 파일(`.claude/` 등 `.gitignore` 대상)의 내용은 쓰지 않는다. 팀원에게 필요한 설정 절차는 `docs/getting_started.md`에 둔다.
+5. **추측과 사실을 구분한다.** 핵심 사실 중 확인하지 않은 내용은 "미확인"이라고 적는다.
+6. 기존 기록 파일은 과거 사실이므로 고치지 않는다. 틀린 내용이 있으면 새 기록에서 정정한다.

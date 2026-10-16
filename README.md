@@ -7,9 +7,13 @@ ROS 2와 Gazebo 시뮬레이션 환경에서 TurtleBot3 Burger의 LiDAR 기반 �
 - ROS 2: Jazzy Jalisco
 - Gazebo: Harmonic
 - 로봇 모델: TurtleBot3 Burger
-- 시뮬레이션 맵: Robotnik 실험실 월드 (`robotnik_gazebo_worlds`)
+- 시뮬레이션 맵: TurtleBot3 기본 월드 (`turtlebot3_gazebo`), 추후 팀 자체 제작 맵으로 전환 예정
 
 팀원별 환경 확인 절차와 기록은 [`docs/environment.md`](docs/environment.md) 참고.
+
+## 시작하기
+
+처음 참여한다면 [`docs/getting_started.md`](docs/getting_started.md)를 따라 설치부터 시뮬레이션 실행까지 진행하세요. 지금까지의 작업 기록과 현재 상태는 [`docs/history/`](docs/history/README.md)에서 볼 수 있습니다.
 
 ## 저장소 구조
 
@@ -27,7 +31,7 @@ ros2_smart_navigator/
 
 ## 브랜치 전략
 
-작업은 기능 브랜치(`feature/<담당자>-<기능>`)에서 진행하고 `integration` 브랜치로 모은 뒤 `main`에 병합합니다. 자세한 규칙은 [`docs/branching.md`](docs/branching.md) 참고.
+작업은 이슈를 먼저 만들고 `{이슈번호}-{닉네임}` 브랜치(예: `12-ryubengock`)에서 진행한 뒤 `main`으로 PR을 보냅니다. (`integration` 브랜치는 현재 사용하지 않습니다.) 자세한 규칙은 [`docs/branching.md`](docs/branching.md) 참고.
 
 ## 팀 구성
 
