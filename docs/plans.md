@@ -17,20 +17,23 @@ ROS 2와 Gazebo 시뮬레이션 환경에서 TurtleBot3 Burger를 활용해 LiDA
 
 - [x] 팀원별 기존 교육 환경에서 ROS 2 및 Gazebo 실행 확인
 - [x] 로봇 모델 선정: **TurtleBot3 Burger**
-- [x] 시뮬레이션 맵 선정: **Robotnik 실험실 월드**
+- [x] 시뮬레이션 맵 선정: **TurtleBot3 기본 월드** (`turtlebot3_world`) — 이후 팀원과 상의해 자체 제작 맵으로 전환 예정
 - [x] 노드 및 토픽 인터페이스 안정화
 - [x] GitHub 저장소 생성
 
 ### 선택한 맵
 
-- 저장소: <https://github.com/RobotnikAutomation/robotnik_gazebo_worlds>
+- 현재 맵: **TurtleBot3 기본 월드** (`turtlebot3_gazebo` 패키지의 `turtlebot3_world`)
 - 실행 명령:
 
 ```bash
-ros2 launch robotnik_lab_world robotnik_lab_world.launch.py
+export TURTLEBOT3_MODEL=burger
+ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 ```
 
-> 실행 패키지와 launch 파일 이름은 현재 교육 환경에서 확인한 값을 기준으로 한다. 팀원들의 ROS 2 배포판과 패키지 설치 상태가 일치하는지 프로젝트 시작 시 기록한다.
+> 당초 Robotnik 실험실 월드(`robotnik_gazebo_worlds`)를 사용하기로 했으나, `robotnik_lab_world`가 ROS 1(catkin, Gazebo Classic) 기반이라 ROS 2 Jazzy + Gazebo Harmonic에서 빌드되지 않아 변경했다. (Jazzy용으로 변환된 월드는 `electrical_substation_world`뿐이다.)
+>
+> 앞으로는 팀원과 상의해 프로젝트에 맞는 맵을 직접 제작하는 방향으로 진행한다. 자체 맵이 준비되면 이 절을 갱신한다.
 
 ---
 
@@ -65,7 +68,7 @@ ros2 launch robotnik_lab_world robotnik_lab_world.launch.py
 
 ### 팀원 C — 제경님: 장애물 회피 및 주행 제어
 
-- `/cmd_vel` 메시지 타입 및 제어 주기 확인
+- `/cmd_vel` 제어 주기 확인 (메시지 타입은 `TwistStamped`로 확인 완료)
 - 직진·정지·회전 동작 구현
 - 거리 임계값에 따른 감속·정지·회전·재주행 로직 구현
 - 충돌 위험, 코너, 반복 주행 테스트
@@ -98,7 +101,7 @@ ros2 launch robotnik_lab_world robotnik_lab_world.launch.py
 ### 기본 데이터 흐름
 
 ```text
-Gazebo: Robotnik 실험실 월드 + TurtleBot3 Burger
+Gazebo: TurtleBot3 기본 월드 (추후 자체 제작 맵) + TurtleBot3 Burger
                     |
                     v
              /scan (LaserScan)
@@ -107,7 +110,7 @@ Gazebo: Robotnik 실험실 월드 + TurtleBot3 Burger
          장애물 감지 / 회피 로직
                     |
                     v
-             /cmd_vel (Twist 계열)
+             /cmd_vel (TwistStamped)
                     |
                     v
              TurtleBot3 주행
@@ -117,18 +120,19 @@ Gazebo: Robotnik 실험실 월드 + TurtleBot3 Burger
 
 | 구성 요소 | 책임 |
 |---|---|
-| Gazebo 시뮬레이션 | 실험실 환경과 TurtleBot3 모델 제공 |
+| Gazebo 시뮬레이션 | 시뮬레이션 맵(현재 기본 월드)과 TurtleBot3 모델 제공 |
 | `sensor_monitor` (선택) | `/scan` 데이터 수신 및 센서 상태 확인 |
 | `obstacle_avoider` | `/scan` 처리 및 `/cmd_vel` 주행 명령 생성 |
 | `experiment_monitor` | 벤치마크 메시지 수신·측정·CSV 기록 |
 
-> `/scan`은 일반적으로 `sensor_msgs/msg/LaserScan`을 사용한다. `/cmd_vel`은 모델 및 설정에 따라 `geometry_msgs/msg/Twist` 또는 `TwistStamped`일 수 있으므로 실제 환경에서 `ros2 topic info` 등으로 확인한다. 기존에 안정화한 인터페이스를 우선 유지한다.
+> `/scan`은 `sensor_msgs/msg/LaserScan`이다. **`/cmd_vel`은 `geometry_msgs/msg/TwistStamped`이며 `Twist`가 아니다.** (ROS 2 Jazzy + Gazebo Harmonic의 TurtleBot3 기본 월드에서 `ros_gz_bridge` 로그로 확인) 장애물 회피 노드(C)는 속도 명령을 `TwistStamped`로 발행해야 한다. 자세한 내용은 [`interfaces.md`](interfaces.md) 참고. 기존에 안정화한 인터페이스를 우선 유지한다.
 
 ### 기본 확인 명령
 
 ```bash
-# 실험실 월드 실행
-ros2 launch robotnik_lab_world robotnik_lab_world.launch.py
+# 시뮬레이션 월드 실행 (TurtleBot3 기본 월드)
+export TURTLEBOT3_MODEL=burger
+ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 
 # 토픽 목록 확인
 ros2 topic list
@@ -151,7 +155,7 @@ ros2 topic echo /scan
 
 - **A:** 저장소 구조와 브랜치 규칙 정리, ROS 2/Gazebo 버전 기록
 - **B:** `/scan` 메시지 타입·주기·QoS 확인, 장애물 감지 기준 정리
-- **C:** `/cmd_vel` 메시지 타입·제어 주기 확인, 주행 동작 정의
+- **C:** `/cmd_vel` 제어 주기 확인(메시지 타입은 `TwistStamped`로 확인 완료), 주행 동작 정의
 - **공동(D):** README 초안 작성, 역할 및 완료 기준 합의
 
 **완료 기준:** 환경 정보, 인터페이스 표, 테스트 시나리오 초안
@@ -160,7 +164,7 @@ ros2 topic echo /scan
 
 **목표:** 센서 수신과 로봇 수동 제어 확인
 
-- **A:** 실험실 맵에서 Burger 시작 위치와 주행 가능 영역 확인
+- **A:** 시뮬레이션 맵에서 Burger 시작 위치와 주행 가능 영역 확인
 - **B:** LaserScan 구독 노드 구현, 전방 거리 출력
 - **C:** 속도 명령 발행 노드 구현, 정지·직진·회전 확인
 - **공동(D):** 각 노드 실행법을 README에 기록
@@ -206,7 +210,7 @@ ros2 topic echo /scan
 
 - **A:** 통합 launch 또는 명확한 실행 절차 구성, 전체 연결 확인
 - **B:** 센서 데이터와 감지 로그 일치 여부 확인
-- **C:** 실험실 맵에서 회피 동작 통합 검증
+- **C:** 시뮬레이션 맵에서 회피 동작 통합 검증
 - **공동(D):** 새 환경에서 실행할 때 필요한 명령과 의존성 기록
 
 **완료 기준:** 팀원 누구나 같은 절차로 전체 시스템 실행
@@ -349,7 +353,7 @@ DDS QoS 설정에 따라 메시지 전달 특성이 어떻게 달라지는지 �
 
 | 평가 영역 | 배점 | 완료 기준 예시 |
 |---|---:|---|
-| 시뮬레이션 환경 | 20 | TurtleBot3 Burger와 실험실 월드가 정상 실행됨 |
+| 시뮬레이션 환경 | 20 | TurtleBot3 Burger와 시뮬레이션 월드가 정상 실행됨 |
 | 장애물 회피 | 20 | 사전 정의한 10회 테스트 중 8회 이상 안전 회피 또는 정지 |
 | ROS 2 구조 | 15 | 노드·토픽·메시지 흐름을 문서와 시연으로 설명 |
 | QoS 실험 | 20 | 조건별 반복 데이터, CSV, 그래프, 해석 확보 |
@@ -425,7 +429,7 @@ ros2_smart_navigator/
 
 ## 12. 참고 자료
 
-- [Robotnik Gazebo Worlds](https://github.com/RobotnikAutomation/robotnik_gazebo_worlds)
+- [TurtleBot3 Simulation (Gazebo)](https://emanual.robotis.com/docs/en/platform/turtlebot3/simulation/)
 - [ROS 2 Documentation](https://docs.ros.org/)
 - [TurtleBot3 e-Manual](https://emanual.robotis.com/docs/en/platform/turtlebot3/)
 
@@ -435,7 +439,7 @@ ros2_smart_navigator/
 
 14일이 끝났을 때 단순히 시뮬레이션이 실행되는 수준을 넘어, 다음을 보여줄 수 있어야 한다.
 
-- TurtleBot3 Burger가 실험실 맵에서 장애물을 감지하고 회피하거나 안전하게 정지한다.
+- TurtleBot3 Burger가 시뮬레이션 맵에서 장애물을 감지하고 회피하거나 안전하게 정지한다.
 - ROS 2 노드·토픽 구조와 DDS QoS의 역할을 설명할 수 있다.
 - QoS 조건별 실험 데이터를 수집하고, 측정 결과를 그래프와 함께 설명할 수 있다.
 - 다른 사람이 GitHub README를 따라 프로젝트를 재현할 수 있다.
