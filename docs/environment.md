@@ -32,7 +32,7 @@ ros2 launch robotnik_lab_world robotnik_lab_world.launch.py
 
 | 팀원 | OS | ROS 2 배포판 | Gazebo 버전 | RMW/DDS | 비고 |
 |---|---|---|---|---|---|
-| A (나) | | Jazzy | Harmonic | | |
+| A (나) | Ubuntu 24.04| Jazzy | Harmonic | | |
 | B (태호님) | | | | | |
 | C (제경님) | | | | | |
 
