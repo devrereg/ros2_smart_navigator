@@ -53,7 +53,7 @@
     </model>
 
     <include>
-      <uri>model://turtlebot3_burger</uri>
+      <uri>file:///home/taeho-kim/ros2_smart_navigator/models/turtlebot3_burger</uri>
       <pose>0 0 0.1 0 0 0</pose>
     </include>
   </world>
