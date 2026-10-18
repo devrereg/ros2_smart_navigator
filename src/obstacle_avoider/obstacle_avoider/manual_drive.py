@@ -1,10 +1,9 @@
 # manual_drive.py - 2일차 C: 속도 명령 발행 노드 (TwistStamped)
-import rclpy
-from rclpy.node import Node
-from rclpy.executors import ExternalShutdownException
 from geometry_msgs.msg import TwistStamped
-
 from obstacle_avoider.common import make_cmd_vel
+import rclpy
+from rclpy.executors import ExternalShutdownException
+from rclpy.node import Node
 
 
 class ManualDrive(Node):
@@ -22,7 +21,7 @@ class ManualDrive(Node):
         self.start_time = self.get_clock().now()
         self.get_logger().info(
             f"started mode={self.get_parameter('mode').value} "
-            f"(10Hz, TwistStamped)"
+            f'(10Hz, TwistStamped)'
         )
 
     def current_cmd(self):

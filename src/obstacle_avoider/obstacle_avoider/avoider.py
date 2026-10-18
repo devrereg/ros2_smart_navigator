@@ -1,12 +1,12 @@
 # avoider.py - 4일차 C: 상태 머신 기반 장애물 회피
 import math
-import rclpy
-from rclpy.node import Node
-from rclpy.executors import ExternalShutdownException
-from sensor_msgs.msg import LaserScan
-from geometry_msgs.msg import TwistStamped
 
+from geometry_msgs.msg import TwistStamped
 from obstacle_avoider.common import make_cmd_vel
+import rclpy
+from rclpy.executors import ExternalShutdownException
+from rclpy.node import Node
+from sensor_msgs.msg import LaserScan
 
 FORWARD, SLOW, STOP, ROTATE, RECOVER = 'FORWARD', 'SLOW', 'STOP', 'ROTATE', 'RECOVER'
 
