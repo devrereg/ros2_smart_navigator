@@ -10,7 +10,7 @@ class LaserScan_sub(Node):
         self.create_subscription(LaserScan, '/scan',self.callback,10) # /scan 구독: 메시지가 올 때마다 callback 호출, 큐 크기 10
 
     def callback(self, msg):
-        front = list(msg.ranges[-30:]) + list(msg.ranges[:31]) # 정면에서 +-5 도
+        front = list(msg.ranges[-15:]) + list(msg.ranges[:16]) # 정면에서 +-5 도
         valid = [r for r in front if not math.isfinite(r) and msg.range_min <= r <= msg.range_max]
         # 유효값만 남김
         # math.isfinite: inf, NaN 제거
