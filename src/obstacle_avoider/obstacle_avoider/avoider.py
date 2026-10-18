@@ -28,6 +28,7 @@ class Avoider(Node):
         self.last_scan_time = None
         self.state = FORWARD
         self.state_start = self.get_clock().now()
+        self.tick_count = 0
         self.create_subscription(LaserScan, '/scan', self.on_scan, 10)
         self.pub = self.create_publisher(TwistStamped, '/cmd_vel', 10)
         self.create_timer(0.1, self.tick)  # 10Hz
@@ -101,6 +102,13 @@ class Avoider(Node):
                 self.enter(FORWARD)
 
         self.pub.publish(make_cmd_vel(self, cmd_lin, cmd_ang))
+
+        self.tick_count += 1
+        if self.tick_count % 10 == 0:  # 1초마다 상태와 거리 로그
+            d_txt = 'None' if d is None else ('inf' if d == float('inf') else f'{d:.2f}m')
+            self.get_logger().info(
+                f'state={self.state} front_min={d_txt} cmd=({cmd_lin:.2f}, {cmd_ang:.2f})'
+            )
 
 
 def main():
