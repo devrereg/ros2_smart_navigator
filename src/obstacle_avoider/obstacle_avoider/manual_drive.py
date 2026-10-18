@@ -4,6 +4,8 @@ from rclpy.node import Node
 from rclpy.executors import ExternalShutdownException
 from geometry_msgs.msg import TwistStamped
 
+from obstacle_avoider.common import make_cmd_vel
+
 
 class ManualDrive(Node):
     def __init__(self):
@@ -45,12 +47,7 @@ class ManualDrive(Node):
 
     def tick(self):
         lin, ang = self.current_cmd()
-        msg = TwistStamped()
-        msg.header.stamp = self.get_clock().now().to_msg()
-        msg.header.frame_id = 'base_link'
-        msg.twist.linear.x = lin
-        msg.twist.angular.z = ang
-        self.pub.publish(msg)
+        self.pub.publish(make_cmd_vel(self, lin, ang))
 
 
 def main():
