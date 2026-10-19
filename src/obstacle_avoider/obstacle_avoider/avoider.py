@@ -1,12 +1,11 @@
 # avoider.py - 4일차 C: 상태 머신 기반 장애물 회피
-import math
-
+# 전방 거리는 detector_node가 발행하는 /obstacle/front_distance를 구독한다.
 from geometry_msgs.msg import TwistStamped
 from obstacle_avoider.common import make_cmd_vel
 import rclpy
 from rclpy.executors import ExternalShutdownException
 from rclpy.node import Node
-from sensor_msgs.msg import LaserScan
+from std_msgs.msg import Float32
 
 FORWARD, SLOW, STOP, ROTATE, RECOVER = 'FORWARD', 'SLOW', 'STOP', 'ROTATE', 'RECOVER'
 
@@ -19,7 +18,6 @@ class Avoider(Node):
         self.declare_parameter('recover_dist', 1.5)   # 재주행 시작 (히스테리시스)
         self.declare_parameter('linear_x', 0.2)
         self.declare_parameter('angular_z', 0.5)
-        self.declare_parameter('front_deg', 30.0)
         self.declare_parameter('scan_timeout', 0.5)
         self.declare_parameter('stop_time', 0.3)      # 정지 유지 시간
         self.declare_parameter('recover_time', 1.0)   # 재주행 유지 시간
@@ -29,23 +27,14 @@ class Avoider(Node):
         self.state = FORWARD
         self.state_start = self.get_clock().now()
         self.tick_count = 0
-        self.create_subscription(LaserScan, '/scan', self.on_scan, 10)
+        self.create_subscription(Float32, '/obstacle/front_distance', self.on_distance, 10)
         self.pub = self.create_publisher(TwistStamped, '/cmd_vel', 10)
         self.create_timer(0.1, self.tick)  # 10Hz
         self.get_logger().info(f'avoider started (state machine, state={self.state})')
 
-    def on_scan(self, msg):
+    def on_distance(self, msg):
         self.last_scan_time = self.get_clock().now()
-        inc = msg.angle_increment
-        if inc <= 0.0:  # 잘못된 스캔 -> 안전 정지
-            self.front_min = None
-            return
-        n = len(msg.ranges)
-        half = int(math.radians(float(self.get_parameter('front_deg').value) / 2) / inc)
-        idx = list(range(0, min(half + 1, n))) + list(range(max(0, n - half), n))
-        vals = [msg.ranges[i] for i in idx
-                if math.isfinite(msg.ranges[i]) and msg.range_min < msg.ranges[i] < msg.range_max]
-        self.front_min = min(vals) if vals else float('inf')
+        self.front_min = msg.data  # 유효값이 없으면 inf
 
     def enter(self, state):
         if state != self.state:
@@ -70,9 +59,9 @@ class Avoider(Node):
         now = self.get_clock().now()
         d = self.front_min
         if self.last_scan_time is None or (now - self.last_scan_time).nanoseconds / 1e9 > timeout:
-            d = None  # 스캔 끊김
+            d = None  # 거리 수신 끊김
 
-        if d is None:  # 스캔 미수신/끊김 -> 안전 정지
+        if d is None:  # 거리 미수신/끊김 -> 안전 정지
             cmd_lin, cmd_ang = 0.0, 0.0
         elif self.state == FORWARD:
             cmd_lin, cmd_ang = lin, 0.0
