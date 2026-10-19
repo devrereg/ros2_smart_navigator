@@ -10,24 +10,27 @@
 | 항목 | 상태 |
 |---|---|
 | 환경 | ROS 2 Jazzy, Gazebo Sim 8.15.0 (Harmonic), RMW `rmw_fastrtps_cpp` (A 환경 확인 완료) |
-| 로봇 / 맵 | TurtleBot3 Burger / TurtleBot3 기본 월드 (`turtlebot3_world`), 추후 자체 제작 맵 예정 |
+| 로봇 / 맵 | TurtleBot3 Burger / 기본 `turtlebot3_world`, `worlds/warehouse.world`(Clearpath) 추가. 실행 시 `world:=<이름>`으로 선택, 추후 자체 제작 맵 예정 |
 | 시뮬레이션 실행 | A 환경에서 실행 및 브리지 연결 확인 완료 |
 | 구현 코드 | `sensor_monitor`(디버그용 구독), `obstacle_detector`(감지 노드·공통 함수), `obstacle_avoider`(수동 주행·상태 머신 회피). `experiment_monitor`는 빈 폴더 |
 | `/scan` | `sensor_msgs/msg/LaserScan`, QoS Reliable·Volatile |
 | `/cmd_vel` | **`geometry_msgs/msg/TwistStamped`** (`Twist` 아님), QoS Reliable·Volatile |
-| 진행 중 브랜치 | `integrations`, 감지/회피 분리 변경이 커밋 전 상태 ([기록](2026-10-19-detector-topic-split.md)) |
+| 진행 중 브랜치 | `7-ryubengock`, launch 맵 선택·warehouse 맵 추가가 커밋 전 상태 ([기록](2026-10-19-launch-world-arg.md)). 감지/회피 분리는 [기록](2026-10-19-detector-topic-split.md) |
 | `/obstacle/front_distance` | `std_msgs/msg/Float32`, `detector_node` → `avoider`, 정면 좌우 15도 최소 유효 거리(없으면 `inf`) |
 
 ### 알아야 할 핵심 사실
 
 - `/cmd_vel`은 `TwistStamped`다. 속도는 `msg.twist.linear.x`, `msg.twist.angular.z`에 넣고 `msg.header.stamp`를 채운다.
 - Robotnik 월드(`robotnik_gazebo_worlds`)의 `robotnik_lab_world`는 ROS 1(catkin, Gazebo Classic) 기반이라 Jazzy에서 빌드되지 않는다. 사용하지 않는다.
-- 통합 실행: `ros2 launch obstacle_avoider avoid.launch.py` (`sim:=false`로 이미 떠 있는 시뮬레이션에 노드만 연결).
+- 통합 실행: `ros2 launch obstacle_avoider avoid.launch.py [world:=<맵 이름>] [spawn_robot:=false] [sim:=false]`. 인자와 실행 순서는 `docs/interfaces.md` 참고. 로봇이 world에 이미 포함된 `worlds/*burger.world`는 `spawn_robot:=false`로 실행한다. `worlds/`에 맵을 추가하면 다시 빌드해야 한다.
+- 기본 bridge(`turtlebot3_burger_bridge.yaml`)에 `/scan`, `/cmd_vel` 등이 포함되어 있어 별도 bridge 설정은 필요 없다. 카메라 등 다른 토픽이 필요해지면 추가한다.
 - 전방 거리 계산은 `obstacle_detector.front_distance.front_min_distance` 한 곳에만 둔다. `avoider`는 `/scan`을 직접 구독하지 않으므로 `detector_node`를 함께 실행해야 한다.
 - Jazzy의 `ros2`는 `--version` 옵션을 지원하지 않는다. 버전은 `ros2 doctor --report`로 확인한다.
 
 ### 남은 작업 / 열린 질문
 
+- [ ] `worlds/turtlebot3_burger.world`의 로봇 경로(`file:///home/taeho-kim/...`)를 `model://turtlebot3_burger`로 수정
+- [ ] warehouse 맵에서 장애물 회피 동작 확인 (스폰 위치·시나리오 정리)
 - [ ] 맵 제작 방향 확정 (팀원과 상의, 담당·일정 미정)
 - [ ] B, C의 `docs/environment.md` 환경 기록 표 채우기
 - [ ] 클린 환경에서 `docs/getting_started.md`의 설치 절차 검증
@@ -39,6 +42,7 @@
 
 | 날짜 | 담당 | 제목 | 파일 |
 |---|---|---|---|
+| 2026-10-19 | A | launch 맵 선택 인자와 warehouse 맵 추가, 4일차 통합 실행 점검 | [2026-10-19-launch-world-arg.md](2026-10-19-launch-world-arg.md) |
 | 2026-10-19 | A | 장애물 감지/회피 분리 및 전방 거리 공통 함수 | [2026-10-19-detector-topic-split.md](2026-10-19-detector-topic-split.md) |
 | 2026-10-16 | A | 환경 확인 및 맵 변경, 문서 정비 | [2026-10-16-env-and-map-change.md](2026-10-16-env-and-map-change.md) |
 

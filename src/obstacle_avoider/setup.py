@@ -13,6 +13,8 @@ setup(
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
+        # 저장소 루트의 worlds/ (colcon은 패키지 디렉토리에서 setup.py를 실행한다)
+        ('share/' + package_name + '/worlds', glob('../../worlds/*.world')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
