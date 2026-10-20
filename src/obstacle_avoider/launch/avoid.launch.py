@@ -66,6 +66,15 @@ def _launch_simulation(context):
                 os.path.join(launch_dir, 'spawn_turtlebot3.launch.py')),
             launch_arguments={'x_pose': LaunchConfiguration('x_pose'),
                               'y_pose': LaunchConfiguration('y_pose')}.items()))
+    else:
+        # 로봇이 world에 이미 포함된 경우: 스폰은 생략하되 bridge는 별도로 실행해야
+        # /scan, /cmd_vel 등이 ROS와 연결된다 (스폰 launch에 bridge가 들어 있음)
+        actions.append(Node(
+            package='ros_gz_bridge',
+            executable='parameter_bridge',
+            arguments=['--ros-args', '-p', 'config_file:=' + os.path.join(
+                gazebo_dir, 'params', 'turtlebot3_burger_bridge.yaml')],
+            output='screen'))
     return actions
 
 

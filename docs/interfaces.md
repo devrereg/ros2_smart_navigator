@@ -31,7 +31,7 @@
 
 1. **Gazebo 서버·GUI** — `world` 인자로 받은 맵을 로드한다. (`ros_gz_sim`의 `gz_sim.launch.py`)
 2. **`robot_state_publisher`**
-3. **로봇 스폰 + `ros_gz_bridge`** — `spawn_turtlebot3.launch.py`가 Burger를 스폰하고 `parameter_bridge`를 `turtlebot3_burger_bridge.yaml` 설정으로 실행한다. (`spawn_robot:=false`이면 생략)
+3. **로봇 스폰 + `ros_gz_bridge`** — `spawn_turtlebot3.launch.py`가 Burger를 스폰하고 `parameter_bridge`를 `turtlebot3_burger_bridge.yaml` 설정으로 실행한다. (`spawn_robot:=false`이면 스폰은 생략하고 `parameter_bridge`만 같은 설정으로 따로 실행한다)
 4. **`detector_node`, `avoider`** — 시뮬레이션과 동시에 시작된다. 별도 대기 로직은 없다.
 
 ```
@@ -49,7 +49,7 @@ Gazebo(LiDAR) --gz /scan--> ros_gz_bridge --/scan--> detector_node
 |---|---|---|
 | `sim` | `true` | `false`이면 이미 떠 있는 시뮬레이션에 노드만 붙인다 |
 | `world` | `turtlebot3_world` | 맵 이름 또는 `.world` 파일 경로. 탐색 순서: 존재하는 경로 → 이 저장소 `worlds/` → `turtlebot3_gazebo/worlds` |
-| `spawn_robot` | `true` | `false`이면 로봇을 스폰하지 않는다 (world 파일에 로봇이 이미 있는 경우) |
+| `spawn_robot` | `true` | `false`이면 로봇을 스폰하지 않고 bridge만 실행한다 (world 파일에 로봇이 이미 있는 경우) |
 | `x_pose`, `y_pose` | `-2.0`, `-0.5` | 로봇 스폰 좌표 |
 | `front_deg` | `30.0` | 전방 감지 구간 전체 폭(도) |
 
