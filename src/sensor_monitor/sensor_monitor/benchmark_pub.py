@@ -69,6 +69,7 @@ def main():
                 node.get_logger().error(f"30초 동안 '{node.pub.topic_name}' 토픽의 subscriber와 매칭되지 않았습니다. "
                                         "subscriber 노드 실행 여부, 토픽 이름/타입, QoS 호환성, ROS_DOMAIN_ID를 확인하세요. "
                                         f"(확인: ros2 topic info -v {node.pub.topic_name})")
+                return
             rclpy.spin_once(node, timeout_sec=0.1)
         node.start()
         # spin 대신 spin_once 반복: total 건을 다 보내면 루프를 빠져나와 자동 종료
