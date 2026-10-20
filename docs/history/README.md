@@ -12,15 +12,18 @@
 | 환경 | ROS 2 Jazzy, Gazebo Sim 8.15.0 (Harmonic), RMW `rmw_fastrtps_cpp` (A 환경 확인 완료) |
 | 로봇 / 맵 | TurtleBot3 Burger / TurtleBot3 기본 월드 (`turtlebot3_world`), 추후 자체 제작 맵 예정 |
 | 시뮬레이션 실행 | A 환경에서 실행 및 브리지 연결 확인 완료 |
-| 구현 코드 | 없음 (`src/sensor_monitor`, `src/obstacle_avoider`, `src/experiment_monitor`는 빈 폴더) |
+| 구현 코드 | `sensor_monitor`(디버그용 구독), `obstacle_detector`(감지 노드·공통 함수), `obstacle_avoider`(수동 주행·상태 머신 회피). `experiment_monitor`는 빈 폴더 |
 | `/scan` | `sensor_msgs/msg/LaserScan`, QoS Reliable·Volatile |
 | `/cmd_vel` | **`geometry_msgs/msg/TwistStamped`** (`Twist` 아님), QoS Reliable·Volatile |
-| 진행 중 브랜치 | `1-ryubengock` (이슈 #1), 커밋 전 변경사항 있음 |
+| 진행 중 브랜치 | `integrations`, 감지/회피 분리 변경이 커밋 전 상태 ([기록](2026-10-19-detector-topic-split.md)) |
+| `/obstacle/front_distance` | `std_msgs/msg/Float32`, `detector_node` → `avoider`, 정면 좌우 15도 최소 유효 거리(없으면 `inf`) |
 
 ### 알아야 할 핵심 사실
 
 - `/cmd_vel`은 `TwistStamped`다. 속도는 `msg.twist.linear.x`, `msg.twist.angular.z`에 넣고 `msg.header.stamp`를 채운다.
 - Robotnik 월드(`robotnik_gazebo_worlds`)의 `robotnik_lab_world`는 ROS 1(catkin, Gazebo Classic) 기반이라 Jazzy에서 빌드되지 않는다. 사용하지 않는다.
+- 통합 실행: `ros2 launch obstacle_avoider avoid.launch.py` (`sim:=false`로 이미 떠 있는 시뮬레이션에 노드만 연결).
+- 전방 거리 계산은 `obstacle_detector.front_distance.front_min_distance` 한 곳에만 둔다. `avoider`는 `/scan`을 직접 구독하지 않으므로 `detector_node`를 함께 실행해야 한다.
 - Jazzy의 `ros2`는 `--version` 옵션을 지원하지 않는다. 버전은 `ros2 doctor --report`로 확인한다.
 
 ### 남은 작업 / 열린 질문
@@ -28,7 +31,7 @@
 - [ ] 맵 제작 방향 확정 (팀원과 상의, 담당·일정 미정)
 - [ ] B, C의 `docs/environment.md` 환경 기록 표 채우기
 - [ ] 클린 환경에서 `docs/getting_started.md`의 설치 절차 검증
-- [ ] 2일차 업무 시작: B는 LaserScan 구독 노드, C는 속도 명령 발행 노드
+- [ ] 회의에서 B·C에게 감지/회피 분리 변경 공유 및 리뷰 (`main` 반영 후) (시뮬레이션 연동은 2026-10-19 A가 확인 완료, `docs/test_plan.md` 검증 기록 참고)
 
 ---
 
@@ -36,6 +39,7 @@
 
 | 날짜 | 담당 | 제목 | 파일 |
 |---|---|---|---|
+| 2026-10-19 | A | 장애물 감지/회피 분리 및 전방 거리 공통 함수 | [2026-10-19-detector-topic-split.md](2026-10-19-detector-topic-split.md) |
 | 2026-10-16 | A | 환경 확인 및 맵 변경, 문서 정비 | [2026-10-16-env-and-map-change.md](2026-10-16-env-and-map-change.md) |
 
 ---
