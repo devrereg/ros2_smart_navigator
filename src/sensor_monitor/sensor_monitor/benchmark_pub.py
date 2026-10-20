@@ -21,7 +21,7 @@ class BenchmarkPub(Node):
         # declare_parameter: 노드 실행 시 사용할 파라미터(설정값)를 등록하고 기본값으로 초기화
         # 실행할 때 --ros-args -p 이름:=값 으로 바꿀 수 있다
         self.declare_parameter('reliability', 'reliable')  # reliable | best_effort
-        self.declare_parameter('rate_hz', 10.0)            # 초당 발행 횟수
+        self.declare_parameter('rate_hz', 10)            # 초당 발행 횟수
         self.declare_parameter('duration_sec', 30.0)       # 발행 시간(초)
         self.declare_parameter('payload_bytes', 64)        # 메시지 1건 크기(바이트)
 
@@ -63,7 +63,12 @@ def main():
     node = BenchmarkPub()
     try:
         # subscriber와 연결되기 전에 보내면 앞쪽 메시지가 유실되므로 매칭을 기다린다
+        deadline = time.monotonic() + 30.0 #monotonic() 을 사용해 시스템 시각 및 서버 시간 동기화에 독립시킴 , 30초 뒤로 설정 변경 가능
         while rclpy.ok() and node.pub.get_subscription_count() == 0:
+            if time.monotonic() > deadline:
+                node.get_logger().error(f"30초 동안 '{node.pub.topic_name}' 토픽의 subscriber와 매칭되지 않았습니다. "
+                                        "subscriber 노드 실행 여부, 토픽 이름/타입, QoS 호환성, ROS_DOMAIN_ID를 확인하세요. "
+                                        f"(확인: ros2 topic info -v {node.pub.topic_name})")
             rclpy.spin_once(node, timeout_sec=0.1)
         node.start()
         # spin 대신 spin_once 반복: total 건을 다 보내면 루프를 빠져나와 자동 종료
