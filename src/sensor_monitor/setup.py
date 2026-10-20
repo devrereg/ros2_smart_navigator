@@ -24,7 +24,9 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'LaserScan_sub = sensor_monitor.LaserScan_sub:main'
+            'LaserScan_sub = sensor_monitor.LaserScan_sub:main',
+            'benchmark_pub = sensor_monitor.benchmark_pub:main',
+            'benchmark_sub = sensor_monitor.benchmark_sub:main',
         ],
     },
 )
