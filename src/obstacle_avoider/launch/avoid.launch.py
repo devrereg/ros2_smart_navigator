@@ -13,7 +13,8 @@ from launch_ros.actions import Node
 
 
 def _find_world(name):
-    """world 인자(경로 또는 이름)를 실제 파일 경로로 바꾼다.
+    """
+    World 인자(경로 또는 이름)를 실제 파일 경로로 바꾼다.
 
     탐색 순서: 존재하는 경로 -> obstacle_avoider/worlds -> turtlebot3_gazebo/worlds
     """
@@ -96,6 +97,9 @@ def generate_launch_description():
         # front_deg: 정면 기준 전체 폭(도). 30이면 좌우 15도
         DeclareLaunchArgument('front_deg', default_value='30.0',
                               description='전방 감지 구간 전체 폭(도)'),
+        # 정지 감지에 사용할 Odometry 토픽 (기본 /odom)
+        DeclareLaunchArgument('odom_topic', default_value='/odom',
+                              description='정지 감지에 사용할 Odometry 토픽'),
         SetEnvironmentVariable('TURTLEBOT3_MODEL', 'burger'),
         OpaqueFunction(function=_launch_simulation,
                        condition=IfCondition(LaunchConfiguration('sim'))),
@@ -111,5 +115,6 @@ def generate_launch_description():
             executable='avoider',
             name='avoider',
             output='screen',
+            parameters=[{'odom_topic': LaunchConfiguration('odom_topic')}],
         ),
     ])
