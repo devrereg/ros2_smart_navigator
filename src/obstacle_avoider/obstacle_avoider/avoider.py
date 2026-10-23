@@ -158,6 +158,7 @@ class Avoider(Node):
         # 복구 중 NaN이 끼어도 BACK/TURN 시간을 건너뛰지 않게 한다.
         if d is None or math.isnan(d):
             self.state_start = now
+            self.stuck.reset()  # NaN으로 멈춘 것을 stuck으로 오판하지 않도록 이동 기록 초기화
             self.publish_cmd(0.0, 0.0, d)
             return
 
