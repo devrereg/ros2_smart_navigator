@@ -37,6 +37,46 @@ def test_ignores_inf_and_nan():
     assert front_min_distance(scan(i0=float('nan'), i1=float('inf'), i2=2.0)) == 2.0
 
 
+def test_negative_inf_is_too_close_obstacle():
+    assert front_min_distance(scan(i0=float('-inf'), i1=2.0)) == 0.12
+    assert front_min_distance(scan(i350=float('-inf'))) == 0.12
+
+
+def test_negative_inf_outside_front_is_ignored():
+    assert front_min_distance(scan(i90=float('-inf'))) == float('inf')
+
+
+def test_all_nan_in_front_is_none():
+    assert front_min_distance(scan(fill=float('nan'))) is None
+
+
+def test_nan_only_outside_front_is_inf():
+    assert front_min_distance(scan(i90=float('nan'), i180=float('nan'))) == float('inf')
+
+
+def test_nan_and_inf_without_valid_value_is_inf():
+    assert front_min_distance(scan(fill=float('nan'), i0=float('inf'))) == float('inf')
+
+
+def test_nan_with_valid_value_returns_value():
+    assert front_min_distance(scan(fill=float('nan'), i3=1.2)) == 1.2
+
+
+def test_mixed_special_values():
+    ranges = scan(i0=float('nan'), i1=float('inf'), i2=float('-inf'), i3=1.0)
+    assert front_min_distance(ranges) == 0.12
+
+
+def test_non_finite_increment_is_none():
+    for inc in (float('nan'), float('inf'), float('-inf')):
+        assert front_min_distance(FakeScan([1.0] * 360, increment=inc)) is None
+
+
+def test_non_finite_front_deg_is_none():
+    for deg in (float('nan'), float('inf'), float('-inf')):
+        assert front_min_distance(scan(i0=1.0), front_deg=deg) is None
+
+
 def test_ignores_out_of_sensor_range():
     assert front_min_distance(scan(i0=0.05, i1=9.0, i2=1.5)) == 1.5
 
