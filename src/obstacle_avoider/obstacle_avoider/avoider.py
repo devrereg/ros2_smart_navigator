@@ -1,5 +1,6 @@
 # avoider.py - 4일차 C: 상태 머신 기반 장애물 회피
 # 5일차: 정지 감지(stuck detection)로 후진 -> 회전 복구를 추가한다.
+# 7일차: front_distance의 NaN/-inf/+inf 센티널을 구분해 안전 정지/후진/전진을 처리한다.
 import math
 
 from geometry_msgs.msg import TwistStamped
@@ -38,7 +39,7 @@ class Avoider(Node):
         self.declare_parameter('turn_angle_deg', 90.0)   # 후진 후 회전 각도
         self.declare_parameter('turn_dir', -1.0)         # -1: 오른쪽, +1: 왼쪽
         self.declare_parameter('stuck_window', 180.0)    # 재시도 횟수 시간창(초)
-        self.declare_parameter('stuck_max', 3)           # 시간창 안 최대 재시도
+        self.declare_parameter('stuck_max', 3)           # stuck/too-close 공통 최대 재시도
 
         self.front_min = None
         self.last_scan_time = None
@@ -66,7 +67,7 @@ class Avoider(Node):
 
     def on_distance(self, msg):
         self.last_scan_time = self.get_clock().now()
-        self.front_min = msg.data  # 유효값이 없으면 inf
+        self.front_min = msg.data  # NaN/-inf/+inf 센티널 포함
 
     def on_odom(self, msg):
         self.odom_x = msg.pose.pose.position.x
@@ -89,19 +90,46 @@ class Avoider(Node):
     def elapsed(self):
         return (self.get_clock().now() - self.state_start).nanoseconds / 1e9
 
-    def on_stuck(self, now_s):
-        """정지 감지 시: 후진 상태로, 시간창 안 횟수가 넘으면 포기한다."""
+    def format_distance(self, d):
+        """로그용 거리 표기. NaN/-inf/+inf를 구분한다."""
+        if d is None:
+            return 'None'
+        if math.isnan(d):
+            return 'nan'
+        if math.isinf(d):
+            return '+inf' if d > 0 else '-inf'
+        return f'{d:.2f}m'
+
+    def publish_cmd(self, lin, ang, d):
+        self.pub.publish(make_cmd_vel(self, lin, ang))
+        self.tick_count += 1
+        if self.tick_count % 10 == 0:  # 1초마다 상태와 거리 로그
+            self.get_logger().info(
+                f'state={self.state} front_min={self.format_distance(d)} '
+                f'cmd=({lin:.2f}, {ang:.2f})'
+            )
+
+    def on_recovery(self, reason, now_s):
+        """stuck/too-close 공통: BACK 후 TURN, 횟수 제한에 도달하면 GAVE_UP."""
+        # StuckDetector.register()를 두 종류의 복구 시도에 공통으로 사용한다.
         count = self.stuck.register(now_s)
         max_count = int(self.get_parameter('stuck_max').value)
         window = float(self.get_parameter('stuck_window').value)
         if count >= max_count:
             self.get_logger().error(
-                f'stuck {count} times in {window:.0f}s -> GAVE_UP (stop)')
+                f'recovery attempts {count} in {window:.0f}s '
+                f'(last={reason}) -> GAVE_UP (stop)')
             self.enter(GAVE_UP)
         else:
             self.get_logger().warn(
-                f'stuck detected ({count}/{max_count}) -> BACK then TURN')
+                f'{reason} detected (recovery {count}/{max_count}) -> BACK then TURN')
             self.enter(BACK)
+
+    def on_stuck(self, now_s):
+        self.on_recovery('stuck', now_s)
+
+    def on_too_close(self, now_s):
+        self.on_recovery('too close', now_s)
 
     def tick(self):
         p = self.get_parameter
@@ -126,16 +154,28 @@ class Avoider(Node):
         if self.last_scan_time is None or (now - self.last_scan_time).nanoseconds / 1e9 > timeout:
             d = None  # 거리 수신 끊김
 
+        # NaN/미수신: 상태를 바꾸지 않고 정지한다. 상태 타이머도 멈춰서
+        # 복구 중 NaN이 끼어도 BACK/TURN 시간을 건너뛰지 않게 한다.
+        if d is None or math.isnan(d):
+            self.state_start = now
+            self.stuck.reset()  # NaN으로 멈춘 것을 stuck으로 오판하지 않도록 이동 기록 초기화
+            self.publish_cmd(0.0, 0.0, d)
+            return
+
+        # 0 이하(음수, -inf)는 too-close로 보고 후진/탐색 복구를 시작한다.
+        too_close = d <= 0.0
+        if too_close and self.state not in (BACK, TURN, GAVE_UP):
+            self.on_too_close(now_s)
+
         # 전진 명령 중인데 실제 위치가 안 변하면 stuck -> BACK/GAVE_UP
-        if d is not None and self.state in (FORWARD, SLOW) and self.odom_fresh(now):
+        if (not too_close and self.state in (FORWARD, SLOW)
+                and self.odom_fresh(now)):
             if self.stuck.update(now_s, self.odom_x, self.odom_y):
                 self.on_stuck(now_s)
         else:
             self.stuck.reset()
 
-        if d is None:  # 거리 미수신/끊김 -> 안전 정지
-            cmd_lin, cmd_ang = 0.0, 0.0
-        elif self.state == FORWARD:
+        if self.state == FORWARD:
             cmd_lin, cmd_ang = lin, 0.0
             if d < stop_d:
                 self.enter(STOP)
@@ -149,7 +189,9 @@ class Avoider(Node):
                 self.enter(FORWARD)
         elif self.state == STOP:
             cmd_lin, cmd_ang = 0.0, 0.0
-            if self.elapsed() > stop_t:
+            if d > rec_d:  # 거리 회복 시 불필요한 회전을 하지 않는다
+                self.enter(FORWARD)
+            elif self.elapsed() > stop_t:
                 self.enter(ROTATE)
         elif self.state == ROTATE:
             cmd_lin, cmd_ang = 0.0, ang
@@ -172,14 +214,7 @@ class Avoider(Node):
         else:  # GAVE_UP: 더 이상 재시도하지 않고 정지 유지
             cmd_lin, cmd_ang = 0.0, 0.0
 
-        self.pub.publish(make_cmd_vel(self, cmd_lin, cmd_ang))
-
-        self.tick_count += 1
-        if self.tick_count % 10 == 0:  # 1초마다 상태와 거리 로그
-            d_txt = 'None' if d is None else ('inf' if d == float('inf') else f'{d:.2f}m')
-            self.get_logger().info(
-                f'state={self.state} front_min={d_txt} cmd=({cmd_lin:.2f}, {cmd_ang:.2f})'
-            )
+        self.publish_cmd(cmd_lin, cmd_ang, d)
 
 
 def main():
