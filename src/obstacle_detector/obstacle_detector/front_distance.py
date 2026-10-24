@@ -10,7 +10,7 @@ def front_min_distance(msg, front_deg=30.0):
 
     - 구간은 인덱스 0(정면)을 중심으로 좌우 front_deg / 2 도이다.
     - 특수값은 REP 117 의미대로 구별한다.
-      -inf(측정하기엔 너무 가까운 물체): range_min 거리의 장애물로 본다.
+      -inf(측정하기엔 너무 가까운 물체): -inf 그대로 반환한다 (후진 후 탐색 판단용).
       +inf(범위 내 물체 없음): 장애물 후보에서 제외한다.
       NaN(측정 오류): 장애물 후보에서 제외한다.
     - 센서 측정 범위(range_min ~ range_max) 밖의 유한값은 제외한다.
@@ -33,7 +33,7 @@ def front_min_distance(msg, front_deg=30.0):
         if math.isnan(r):
             nan_count += 1
         elif r == float('-inf'):
-            vals.append(msg.range_min)
+            vals.append(r)
         elif r == float('inf'):
             continue
         elif msg.range_min < r < msg.range_max:

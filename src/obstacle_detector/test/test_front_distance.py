@@ -38,8 +38,8 @@ def test_ignores_inf_and_nan():
 
 
 def test_negative_inf_is_too_close_obstacle():
-    assert front_min_distance(scan(i0=float('-inf'), i1=2.0)) == 0.12
-    assert front_min_distance(scan(i350=float('-inf'))) == 0.12
+    assert front_min_distance(scan(i0=float('-inf'), i1=2.0)) == float('-inf')
+    assert front_min_distance(scan(i350=float('-inf'))) == float('-inf')
 
 
 def test_negative_inf_outside_front_is_ignored():
@@ -63,8 +63,8 @@ def test_nan_with_valid_value_returns_value():
 
 
 def test_mixed_special_values():
-    ranges = scan(i0=float('nan'), i1=float('inf'), i2=float('-inf'), i3=1.0)
-    assert front_min_distance(ranges) == 0.12
+    msg = scan(i0=float('nan'), i1=float('inf'), i2=float('-inf'), i3=1.0)
+    assert front_min_distance(msg) == float('-inf')
 
 
 def test_non_finite_increment_is_none():
