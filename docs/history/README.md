@@ -15,8 +15,8 @@
 | 구현 코드 | `sensor_monitor`(디버그용 구독), `obstacle_detector`(감지 노드·공통 함수), `obstacle_avoider`(수동 주행·상태 머신 회피). `experiment_monitor`는 빈 폴더 |
 | `/scan` | `sensor_msgs/msg/LaserScan`, QoS Reliable·Volatile |
 | `/cmd_vel` | **`geometry_msgs/msg/TwistStamped`** (`Twist` 아님), QoS Reliable·Volatile |
-| 진행 중 브랜치 | `7-ryubengock`. 4일차 B·C 작업 병합 완료, `detector_node.py` 충돌 마커 제거는 커밋 전 상태 ([기록](2026-10-20-detector-conflict-fix.md)). launch 맵 선택은 [기록](2026-10-19-launch-world-arg.md), 감지/회피 분리는 [기록](2026-10-19-detector-topic-split.md) |
-| 4일차 기본 회피 | warehouse 맵에서 직진 → 장애물 앞 정지 → 회피 동작 A가 확인 (2026-10-20). 스폰 위치·시나리오 정리와 실패 사례 기록은 남음 |
+| 진행 중 브랜치 | `14-ryubengock` (5일차 통합 테스트, [기록](2026-10-25-day5-integration-test.md)). 이전 `7-ryubengock`: 4일차 B·C 작업 병합 완료, `detector_node.py` 충돌 마커 제거는 커밋 전 상태 ([기록](2026-10-20-detector-conflict-fix.md)). launch 맵 선택은 [기록](2026-10-19-launch-world-arg.md), 감지/회피 분리는 [기록](2026-10-19-detector-topic-split.md) |
+| 4~5일차 회피 | warehouse 맵에서 직진 → 장애물 앞 정지(약 0.5 m) → 회피 동작 확인. 5일차 통합 테스트에서 10회 중 9회 안전 (2026-10-25, [검증 기록](../test_plan.md)). `(9.0, -15.0)` 시작에서 접촉 의심 1회, 스폰 불량 위치 2곳이 남음 |
 | `/obstacle/front_distance` | `std_msgs/msg/Float32`, `detector_node` → `avoider`, 정면 좌우 15도 최소 유효 거리(없으면 `inf`) |
 
 ### 알아야 할 핵심 사실
@@ -34,7 +34,8 @@
 
 - [x] `worlds/turtlebot3_burger.world`의 로봇 경로를 `model://turtlebot3_burger`로 수정 (센서 플러그인 누락은 미해결, 아래 참고)
 - [ ] `worlds/turtlebot3_burger.world`에 `gz-sim-sensors-system` 플러그인 추가 (이 world를 쓸 때만 필요, 현재는 `warehouse` 사용)
-- [ ] warehouse 맵 스폰 위치·시나리오 정리와 실패 사례 기록 (기본 회피 동작은 확인됨)
+- [ ] warehouse 맵 스폰 위치·시나리오 정리 (사용 불가: `(5.0, -6.0)`, `(-8.0, -8.0)`), launch에 시작 방향(yaw) 인자 추가 검토
+- [ ] `(9.0, -15.0)` 시작에서 최소 거리 0.12 m가 나온 원인 확인 (C·B), 정면 ±15도 밖 장애물 대응 범위 논의
 - [ ] B에게 충돌 마커 push 경위 공유, 경계값 로그를 A 버전 `detector_node` 위에 다시 추가 (4일차 B 업무), `benchmark_pub/sub`와의 관계 확인
 - [ ] 맵 제작 방향 확정 (팀원과 상의, 담당·일정 미정)
 - [ ] B, C의 `docs/environment.md` 환경 기록 표 채우기
@@ -47,6 +48,7 @@
 
 | 날짜 | 담당 | 제목 | 파일 |
 |---|---|---|---|
+| 2026-10-25 | A | 5일차 통합 테스트 결과 기록 (정지·회피 9/10회) | [2026-10-25-day5-integration-test.md](2026-10-25-day5-integration-test.md) |
 | 2026-10-20 | A | burger.world 경로 수정, spawn_robot:=false 시 bridge 누락 수정 | [2026-10-20-world-path-and-bridge.md](2026-10-20-world-path-and-bridge.md) |
 | 2026-10-20 | A | detector_node 리베이스 충돌 마커 제거 | [2026-10-20-detector-conflict-fix.md](2026-10-20-detector-conflict-fix.md) |
 | 2026-10-19 | A | launch 맵 선택 인자와 warehouse 맵 추가, 4일차 통합 실행 점검 | [2026-10-19-launch-world-arg.md](2026-10-19-launch-world-arg.md) |
