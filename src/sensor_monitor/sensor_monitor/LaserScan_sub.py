@@ -18,7 +18,10 @@ class LaserScan_sub(Node):
         # 전방 최소 거리 계산은 obstacle_detector의 공통 함수를 쓴다 (정면 좌우 15도)
         dist = front_min_distance(msg)
         if dist is None:
-            self.get_logger().warn('잘못된 스캔 (angle_increment <= 0)')
+            self.get_logger().warn('잘못된 스캔 (angle_increment 이상 또는 전방 전체 NaN)')
+        elif dist == float('-inf'):
+            # 측정하기엔 너무 가까운 물체 (REP 117)
+            self.get_logger().warn('정면: 너무 가까운 장애물 (-inf)')
         elif math.isinf(dist):
             # 유효값이 하나도 없음 = 측정 범위 안에 장애물 없음
             self.get_logger().info('정면: 장애물 없음')
