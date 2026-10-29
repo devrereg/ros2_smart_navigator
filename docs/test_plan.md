@@ -72,7 +72,41 @@ ros2 topic pub -r 10 /obstacle/front_distance std_msgs/msg/Float32 "{data: 0.8}"
 
 ### C. 거리 계산 단위 테스트
 
-`colcon test --packages-select obstacle_detector`로 `src/obstacle_detector/test/test_front_distance.py` 8건을 실행한다. 정면 좌우 15도 경계, `inf`/`NaN`, 센서 범위 밖 값, 유효값 없음, 잘못된 스캔, `front_deg` 변경을 확인한다.
+최신 `main` 기준 `src/obstacle_detector/test/test_front_distance.py`의 단위 테스트 17건을 실행한다. Gazebo 없이 `front_min_distance()`에 `FakeScan`을 직접 넣어 거리 계산만 검증한다.
+
+**방법**
+
+- 환경: ROS 2 Jazzy, Python 3.12.3, pytest 7.4.4
+- `FakeScan`: 360개 샘플, 1도 간격, `range_min=0.12`, `range_max=3.5`
+- 테스트할 인덱스만 값을 덮어쓰고, 나머지는 기본값(`inf` 또는 `NaN`)을 사용한다.
+- 정면 좌우 15도 경계, `inf`/`NaN`/`-inf`, 센서 범위 밖 값, 유효값 없음, 잘못된 스캔, `front_deg` 변경을 확인한다.
+
+```bash
+source /opt/ros/jazzy/setup.bash
+cd ~/ros2_ws
+colcon build --packages-select obstacle_detector
+source install/setup.bash
+colcon test --packages-select obstacle_detector
+colcon test-result --verbose
+```
+
+**결과 (2026-10-29, `origin/main` d104569)**
+
+- `test_front_distance.py`: **17 passed**
+- 패키지 전체: **20 tests, 19 passed, 1 skipped, 0 failures**
+
+| ID | 구분 | 테스트 함수 | 건수 | 확인 내용 | 기대/실제 | 결과 |
+|---|---|---|---:|---|---|---|
+| C-1 | 정면 최소 | `test_returns_min_in_front` | 1 | 정면 1.0/0.8 m 중 최소 | 0.8 | 통과 |
+| C-2 | ±15° 경계 포함 | `test_both_sides_within_15_deg` | 1 | i15=0.6, i345=0.7 | 0.6 / 0.7 | 통과 |
+| C-3 | ±15° 밖 제외 | `test_ignores_outside_front_range` | 1 | i16/i344/i90/i180=0.3 | inf | 통과 |
+| C-4 | `inf`/`NaN`/`-inf` | `test_ignores_inf_and_nan`, `test_negative_inf_is_too_close_obstacle`, `test_negative_inf_outside_front_is_ignored`, `test_all_nan_in_front_is_none`, `test_nan_only_outside_front_is_inf`, `test_nan_and_inf_without_valid_value_is_inf`, `test_nan_with_valid_value_returns_value`, `test_mixed_special_values` | 8 | NaN/inf 혼합, 전방·측면 `-inf`, all NaN, NaN+유효값 | 2.0 / -inf / inf / None / inf / inf / 1.2 / -inf | 통과 |
+| C-5 | 센서 범위 밖 | `test_ignores_out_of_sensor_range` | 1 | 0.05, 9.0, 1.5 | 1.5 | 통과 |
+| C-6 | 유효값 없음 | `test_no_valid_value_is_inf` | 1 | 전방 all `inf` | inf | 통과 |
+| C-7 | 잘못된 스캔/파라미터 | `test_invalid_scan_is_none`, `test_non_finite_increment_is_none`, `test_non_finite_front_deg_is_none` | 3 | `angle_increment=0`, non-finite increment/front_deg | None | 통과 |
+| C-8 | `front_deg` 변경 | `test_front_deg_parameter` | 1 | 60°는 i20 포함, 30°는 제외 | 0.5 / inf | 통과 |
+
+- 한계: 이 테스트는 `front_min_distance()` 순수 함수만 검증한다. 실제 센서·시뮬레이션 연동은 통합 테스트에서 확인한다.
 
 ## 검증 기록
 
