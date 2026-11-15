@@ -27,6 +27,9 @@ setup(
             'LaserScan_sub = sensor_monitor.LaserScan_sub:main',
             'benchmark_pub = sensor_monitor.benchmark_pub:main',
             'benchmark_sub = sensor_monitor.benchmark_sub:main',
+            'detection_log = sensor_monitor.detection_log:main',
+            'sensor_fault_test = sensor_monitor.sensor_fault_test:main',
+            'avoid_trial = sensor_monitor.avoid_trial:main',
         ],
     },
 )

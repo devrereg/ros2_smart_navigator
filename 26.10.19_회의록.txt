@@ -1,0 +1,18 @@
+맵 로드 하는 법
+
+	시뮬레이션까지 한 번에
+
+		ros2 launch obstacle_avoider avoid.launch.py
+
+	시묻레이션이 이미 9 있다면
+
+		.avoid.launch.py sim: false
+
+맵 만드는법 
+
+맵 찾아오기
+
+데이터 특성 확인
+
+데이터 저장 
+	csv

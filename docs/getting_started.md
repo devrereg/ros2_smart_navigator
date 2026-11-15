@@ -213,7 +213,29 @@ source install/setup.bash
 
 ---
 
-## 9. 문제 해결
+## 9. 전체 시스템 실행
+
+저장소 폴더를 워크스페이스로 사용합니다. 처음 한 번 그래프용 라이브러리를 설치하고 빌드합니다.
+
+```bash
+sudo apt install python3-matplotlib python3-scipy
+cd ~/ros2_smart_navigator
+colcon build --symlink-install
+source install/setup.bash
+bash scripts/check_env.sh
+```
+
+`check_env.sh`의 모든 항목이 `OK`이면 전체 시스템을 실행합니다.
+
+```bash
+ros2 launch obstacle_avoider avoid.launch.py world:=warehouse x_pose:=8.0 y_pose:=0.0
+```
+
+`warehouse`는 처음 실행할 때 Gazebo Fuel에서 모델을 내려받으므로 시간이 걸립니다. 스폰 위치로 `(5.0, -6.0)`, `(-8.0, -8.0)`은 쓰지 않습니다.
+
+---
+
+## 10. 문제 해결
 
 | 증상 | 확인할 것 |
 |---|---|

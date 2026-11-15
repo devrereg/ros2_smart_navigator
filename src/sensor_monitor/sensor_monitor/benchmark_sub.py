@@ -20,7 +20,11 @@ class BenchmarkSub(Node):
         self.declare_parameter('rate_hz', 10)  # 파일명 기록용 (발행 주기는 pub이 정함)
         self.declare_parameter('run', 1)  # 반복 번호 (파일명 기록용)
         self.declare_parameter('out_dir', 'results/csv')  # 실행 위치 기준 상대 경로
+        # 첫 수신 후 이 시간 동안 수신이 없으면 종료. 0이면 Ctrl+C까지 수신
+        self.declare_parameter('idle_timeout_sec', 0.0)
 
+        self.idle_timeout = self.get_parameter('idle_timeout_sec').value
+        self.last_recv = None
         reliability = self.get_parameter('reliability').value
         rate_hz = self.get_parameter('rate_hz').value
         run = self.get_parameter('run').value
@@ -44,6 +48,7 @@ class BenchmarkSub(Node):
     def callback(self, msg):
         # 수신 시각을 가장 먼저 찍어 처리 시간이 지연에 섞이지 않게 한다
         recv_ns = time.time_ns()
+        self.last_recv = time.monotonic()
         data = bytes(msg.data)
         # 앞 16바이트에서 seq와 송신 시각을 꺼냄 (나머지는 패딩)
         seq, send_ns = HEADER.unpack_from(data)
@@ -52,12 +57,18 @@ class BenchmarkSub(Node):
         # 1건당 1행. 손실/중복/순서 판정은 기록 후 seq로 분석한다
         self.writer.writerow([seq, send_ns, recv_ns, f'{latency_ms:.3f}', len(data)])
 
+    def idle_done(self):
+        return (self.idle_timeout > 0.0 and self.last_recv is not None
+                and time.monotonic() - self.last_recv > self.idle_timeout)
+
 
 def main():
     rclpy.init()
     node = BenchmarkSub()
     try:
-        rclpy.spin(node)  # Ctrl+C 할 때까지 수신
+        # Ctrl+C 또는 idle_timeout_sec 경과까지 수신
+        while rclpy.ok() and not node.idle_done():
+            rclpy.spin_once(node, timeout_sec=0.1)
     except (KeyboardInterrupt, ExternalShutdownException):
         pass
     finally:
