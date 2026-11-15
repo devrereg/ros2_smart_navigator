@@ -1,0 +1,267 @@
+가제보 월드 마찰력 조절
+가제보(Gazebo)에서 마찰력을 조절하려면 SDF 파일 또는 URDF(Xacro) 파일 내 <friction> 태그의 mu와 mu2 계수를 수정해야 합니다. 가제보는 기본적으로 두 물체가 맞닿을 때 양쪽 물체의 마찰 계수 중 더 낮은 값을 기준으로 물리 연산을 수행하므로, 바닥(World/Ground Plane)과 로봇 바퀴 양쪽의 설정을 모두 확인하는 것이 좋습니다.
+마찰력을 조절하는 구체적인 흐름과 설정 방법은 다음과 같습니다.
+
+1. 핵심 마찰력 파라미터 이해
+
+• <mu> (또는 <mu1>): 접촉면의 첫 번째 축 방향에 대한 정역학적 마찰 계수(Coulomb friction coefficient)입니다. 일반적으로 0.0(마찰 없음)에서 1.0(일반적인 마찰) 사이로 설정하며, 미끄러짐을 완전히 방지하려면 100.0 이상으로 높이기도 합니다.
+• <mu2>: 첫 번째 축에 수직인 두 번째 축 방향의 마찰 계수입니다. 옴니휠이나 캐스터 바퀴처럼 특정 방향으로 미끄러져야 하는 부품은 이 값을 낮게 설정합니다.
+
+2. 설정 방법 (파일 유형별)
+
+
+① 월드 지면(.world 또는 .sdf)의 마찰력 조절
+
+가제보 월드 전체 바닥(ground_plane)의 마찰력을 바꾸고 싶다면, 월드 SDF 파일 내 바닥 모델의 <collision> 태그 내부에 마찰력 설정을 추가합니다.
+xml
+<model name="ground_plane">
+  <static>true</static>
+  <link name="link">
+    <collision name="collision">
+      <geometry>
+        <plane>
+          <normal>0 0 1</normal>
+          <size>100 100</size>
+        </plane>
+      </geometry>
+      <surface>
+        <friction>
+          <ode>
+            <mu>100.0</mu>  <!-- 기본값은 보통 1.0, 필요시 조절 -->
+            <mu2>50.0</mu2>
+          </ode>
+        </friction>
+      </surface>
+    </collision>
+    <!-- 생략: <visual> ... -->
+  </link>
+</model>
+코드를 사용할 때는 주의가 필요합니다.
+
+② 로봇 바퀴 및 링크(.urdf 또는 .xacro)의 마찰력 조절
+
+ROS에서 생성한 URDF 로봇 모델을 가제보로 불러올 때는 오리지널 URDF 문법에 마찰력 태그가 포함되어 있지 않으므로, 반드시 <gazebo> 확장 태그를 사용해 감싸주어야 합니다.
+xml
+<!-- 특정 바퀴 링크 이름 지정 (예: left_wheel) -->
+<gazebo reference="left_wheel">
+  <mu1>2.0</mu1>  <!-- 첫 번째 마찰 계수 (가제보 플러그인 인식용) -->
+  <mu2>2.0</mu2>  <!-- 두 번째 마찰 계수 -->
+  <kp>1000000.0</kp> <!-- 접촉 강도 (Surface stiffness) -->
+  <kd>1.0</kd>       <!-- 접촉 감쇠 (Damping) -->
+</gazebo>
+코드를 사용할 때는 주의가 필요합니다.
+
+3. 마찰력 적용 프로세스 및 구조
+
+프로그래밍이나 시뮬레이션 환경 구축 시 모델 구조가 복잡해지면 아래와 같은 흐름으로 제어 구조가 연결됩니다.
+자세히
+
+💡 원하는 대로 작동하지 않을 때 체크리스트
+
+1. 두 접촉면 모두 확인하기: 로봇 바퀴의 mu 값을 100.0으로 올려도 바닥(ground_plane)의 mu 값이 0.1로 낮으면 바퀴가 미끄러집니다.
+2. 물리 엔진 설정을 위해 <ode> 확인: 가제보는 기본 물리 엔진으로 ODE(Open Dynamics Engine)를 사용하므로, SDF 파일 내부에서는 반드시 <friction><ode><mu>...</mu></ode></friction> 구조를 갖추어야 합니다.
+3. Kp, Kd 값 조절: 가끔 로봇이 마찰력 때문에 미끄러지는 것이 아니라 바닥면과 충돌하며 덜덜 떨리거나(chattering) 튕겨 나가는 현상이 발생합니다. 이때는 위 URDF 예시처럼 접촉면 강도 속성인 <kp>(Stiffness)와 <kd>(Damping)를 함께 미세 조정해야 정상적으로 굴러갑니다.
+현재 어떤 종류의 로봇(예: 2륜 모바일 로봇, 사족보행 로봇 등)을 테스트 중이신가요? 혹은 바퀴가 미끄러지는 문제인지, 지형 물리 설정 문제인지 말씀해 주시면 상황에 맞는 정확한 태그 값을 가이드해 드릴 수 있습니다.
+AI 대답에는 오류가 있을 수 있습니다. 자세히 알아보기
+• 
+티스토리
+ROS gazebo에서 image 넣기, How to build a world with real ...
+엘리먼트: 물체 간의 슬립(stick-slip) 현상을 조절하는 두 번째 마찰력 계수입니다. 이 값은 마찰력...
+• 
+YouTube·뒷방늙은이
+7) Launch the Simulation with Gazebo
+7) Launch the Simulation with Gazebo 네 저번 시간에 URDF RVIZ를 이용해...
+3m
+• 
+티스토리
+[Robot] ros&gazebo 이륜차 만들기 - 파이톨치 - 티스토리
+mu1과 mu2는 각각 접촉면의 두 축을 따라 적용되는 마찰 계수로, 값을 높이면 해당 축의 마찰력이 증가합...
+모두 표시
+==============================================================================================
+
+
+
+센서값 미수신·비정상 거리값 처리 검증 하는 방법
+
+가제보(Gazebo) 환경에서 센서값 미수신(Drop)이나 비정상적인 거리값(Outlier/Noise)이 발생했을 때, 로봇 소프트웨어(ROS/ROS2 노드)가 이를 안전하고 올바르게 처리(Filtering & Exception Handling)하는지 검증하는 방법은 크게 3가지로 나뉩니다.
+
+1. 가제보 월드/모델 내 플러그인 설정 변경 (시뮬레이션 자체 유도)
+
+가제보 센서 플러그인 내부 파라미터를 수정하여 의도적으로 노이즈나 미수신 상태를 만들어 검증하는 방법입니다.
+• 비정상 거리값(노이즈) 주입:
+SDF 또는 URDF의 센서(예: LiDAR, 레이저 스캐너) 태그 내부에 <noise> 설정을 추가합니다. 가우시안 노이즈를 크게 주어 범위를 벗어나는 비정상 값이 튀도록 유도할 수 있습니다.
+
+xml
+<sensor type="ray" name="laser">
+  <plugin name="gazebo_ros_laser" filename="libgazebo_ros_laser.so">
+    <!-- 생략 -->
+  </plugin>
+  <ray>
+    <noise>
+      <type>gaussian</type>
+      <mean>0.0</mean>
+      <stddev>0.5</stddev> <!-- 표준편차를 높여 비정상 거리값을 인위적으로 생성 -->
+    </noise>
+  </ray>
+</sensor>
+코드를 사용할 때는 주의가 필요합니다.
+
+• 센서값 미수신(주파수 저하) 유도:
+<update_rate> 값을 극단적으로 낮추거나(0.1 이하), 가제보 내부에서 물리적으로 센서 앞을 완전히 막아버리는 가상의 벽(벽이 너무 가까우면 min_range 미만으로 인식되어 미수신 처리됨)을 배치해 예외 동작을 확인합니다.
+
+2. ROS / ROS2 데이터단에서의 결함 주입 (Fault Injection)
+
+시뮬레이션은 정상적으로 켜두고, 센서 노드와 내비게이션(또는 제어) 노드 사이의 토픽 데이터를 가로채거나 변형하는 방법입니다. 가장 추천하는 검증 방식입니다.
+• 토픽 강제 중단 (미수신 검증):
+센서 데이터가 발행되는 토픽을 강제로 죽이거나, ros2 topic pub 또는 rostopic 명령어로 빈 데이터를 보냅니다.bash
+# ROS2 예시: 센서 노드를 잠시 중단(Ctrl+Z)하거나 토픽을 unregister/리다이렉트하여 
+# 제어 노드가 타임아웃(Timeout)을 감지하고 멈추는지(Fail-Safe) 확인
+코드를 사용할 때는 주의가 필요합니다.
+• 스크립트 기반 결함 주입 노드 작성 (Python/C++):
+가제보가 발행하는 원본 토픽(예: /scan_raw)을 구독(Subscribe)한 뒤, 일부러 값을 조작하여 새로운 토픽(예: /scan_corrupted)으로 발행하는 중간 필터 노드를 만듭니다.
+	• 미수신 상태 재현: 확률적으로 10번 중 3번은 데이터를 publish 하지 않고 버림.
+	• 최대/최소 거리값 오류 재현: 거리 데이터를 전부 0.0 또는 Inf (무한대), NaN 값으로 치환하여 보냄.
+
+3. 검증 시나리오별 확인해야 할 체크리스트
+
+테스트를 수행할 때 로봇의 제어 알고리즘이 아래와 같이 대응하는지 모니터링해야 합니다.
+
+검증 시나리오	의도적인 결함 주입 방법	기대되는 정상 처리 결과 (검증 성공 기준)
+센서 미수신 (데이터 드롭)	센서 토픽 발행을 일정 시간(예: 1초 이상) 중단	로봇이 즉시 정지(Emergency Stop)하고 통신 에러 로그를 출력해야 함 (기존 속도로 계속 돌면 실패).
+비정상 최소 거리값	특정 레이저 빔의 거리를 0.0m 또는 NaN으로 주입	필터링 알고리즘(예: LaserScanAngularBoundsFilter 등)이 이를 무시하여 유령 장애물로 오인해 급정거하는 일이 없어야 함.
+비정상 최대 거리값	거리값을 999.0m 또는 Inf로 주입	맵(Costmap)을 업데이트할 때 해당 방향을 '장애물 없음(Clear)' 영역으로 정상 판단하되, 연산 오버플로우가 나지 않아야 함.
+튀는 노이즈 (Outlier)	특정 프레임에서만 거리가 앞뒤로 요동치게 설정	이동 평균 필터(Moving Average Filter)나 칼만 필터(Kalman Filter)를 통해 부드럽게 보정되어 로봇이 움찔거리지 않아야 함.
+
+현재 검증하려고 하시는 센서가 LiDAR(LaserScan)인가요, 아니면 카메라 기반의 Depth 센서(PointCloud2)인가요? 사용 중이신 ROS 버전(ROS1 / ROS2)을 알려주시면, 해당 센서 데이터를 가로채서 결함을 주입할 수 있는 간단한 파이썬 스크립트 예시를 제공해 드릴 수 있습니다.
+AI 대답에는 오류가 있을 수 있습니다. 자세히 알아보기
+
+
+==============================================================================================
+
+
+
+LiDAR(LaserScan) di
+
+오타로 인해 메시지가 "LiDAR(LaserScan) di"에서 끊긴 것 같습니다. 아마도 LiDAR(LaserScan) 데이터를 가로채서 결함을 주입(Fault Injection)하는 Python 스크립트나 구체적인 테스트 방법을 요청하시려던 것으로 이해했습니다.
+ROS/ROS2에서 LiDAR(sensor_msgs/msg/LaserScan) 데이터의 미수신 상태와 비정상 거리값(Inf, NaN, 노이즈)을 인위적으로 만들어 검증할 수 있는 결함 주입 노드(Fault Injection Node) 예시를 안내해 드립니다.
+사용하시는 환경에 맞춰 ROS 1 또는 ROS 2 코드를 선택하여 테스트해 보세요.
+
+1. ROS 2 기반 LiDAR 결함 주입 스크립트 (Python)
+
+가제보에서 나오는 원본 토픽(/scan)을 구독한 뒤, 설정한 모드에 따라 값을 오염시켜 /scan_corrupted로 새로 발행하는 노드입니다.
+python
+import rclpy
+from rclpy.node import Node
+import random
+import math
+from sensor_msgs.msg import LaserScan
+
+class LidarFaultInjector(Node):
+    def __init__(self):
+        super().__init__('lidar_fault_injector')
+        
+        # 구독 및 발행 설정
+        self.subscription = self.create_subscription(LaserScan, '/scan', self.listener_callback, 10)
+        self.publisher_ = self.create_publisher(LaserScan, '/scan_corrupted', 10)
+        
+        # 제어 파라미터 (테스트하고 싶은 모드를 활성화하세요)
+        self.fault_mode = "nan_inf"  # 옵션: "drop", "nan_inf", "noise", "normal"
+        self.drop_rate = 0.5         # drop 모드일 때 토픽을 버릴 확률 (50%)
+
+    def listener_callback(self, msg):
+        # 1. 센서값 미수신(Drop) 검증 모드
+        if self.fault_mode == "drop":
+            if random.random() < self.drop_rate:
+                self.get_logger().warn("의도적 데이터 드롭 (미수신 발생)")
+                return # 토픽을 Publish 하지 않고 함수를 종료하여 미수신 유도
+        
+        corrupted_msg = msg
+        new_ranges = list(msg.ranges)
+        
+        # 2. 비정상 거리값(NaN 또는 Inf) 주입 모드
+        if self.fault_mode == "nan_inf":
+            for i in range(len(new_ranges)):
+                if random.random() < 0.2: # 20% 확률로 비정상치 주입
+                    new_ranges[i] = float('nan') if random.choice([True, False]) else float('inf')
+                    
+        # 3. 튀는 노이즈(Outlier) 주입 모드
+        elif self.fault_mode == "noise":
+            for i in range(len(new_ranges)):
+                if random.random() < 0.1: # 10% 확률로 뜬금없는 거리가 찍힘
+                    new_ranges[i] = random.uniform(0.01, 0.1) # 미만 거리 (최소 거리 에러)
+
+        corrupted_msg.ranges = new_ranges
+        self.publisher_.publish(corrupted_msg)
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = LidarFaultInjector()
+    rclpy.spin(node)
+    node.destroy_node()
+    rclpy.shutdown()
+
+if __name__ == '__main__':
+    main()
+코드를 사용할 때는 주의가 필요합니다.
+
+2. ROS 1 기반 LiDAR 결함 주입 스크립트 (Python)
+
+python
+#!/usr/bin/env encoding: utf-8
+import rospy
+import random
+from sensor_msgs.msg import LaserScan
+
+class LidarFaultInjector:
+    def __init__(self):
+        rospy.init_node('lidar_fault_injector', anonymous=True)
+        
+        self.pub = rospy.Publisher('/scan_corrupted', LaserScan, queue_size=10)
+        rospy.Subscriber('/scan', LaserScan, self.callback)
+        
+        self.fault_mode = "nan_inf"  # "drop", "nan_inf", "noise", "normal"
+        self.drop_rate = 0.5
+
+    def callback(self, msg):
+        if self.fault_mode == "drop" and random.random() < self.drop_rate:
+            rospy.logwarn("의도적 데이터 드롭")
+            return
+
+        new_ranges = list(msg.ranges)
+        
+        if self.fault_mode == "nan_inf":
+            for i in range(len(new_ranges)):
+                if random.random() < 0.2:
+                    new_ranges[i] = float('nan') if random.choice([True, False]) else float('inf')
+                    
+        elif self.fault_mode == "noise":
+            for i in range(len(new_ranges)):
+                if random.random() < 0.1:
+                    new_ranges[i] = 0.02 # 비정상 최소 거리값
+
+        msg.ranges = new_ranges
+        self.pub.publish(msg)
+
+if __name__ == '__main__':
+    try:
+        injector = LidarFaultInjector()
+        rospy.spin()
+    except rospy.ROSInterruptException:
+        pass
+코드를 사용할 때는 주의가 필요합니다.
+
+3. 검증 환경 연동 및 수행 방법
+
+1. 내비게이션(Nav2 / AMCL 등) 입력 토픽 변경
+	• 기존 로봇 제어 및 자율주행 노드가 가제보의 오리지널 토픽인 /scan을 바라보고 있었다면, 이를 위 스크립트가 내보내는 오염된 토픽인 /scan_corrupted를 구독하도록 **yaml 파일이나 launch 파일의 리맵핑(remap)**을 수정합니다.
+2. 테스트 시나리오 수행
+	• self.fault_mode = "drop" 설정 후 실행: 로봇이 주행하다가 데이터가 툭툭 끊길 때 제어 알고리즘이 타임아웃을 감지하여 안전하게 멈추는지(Fail-safe) 확인합니다.
+	• self.fault_mode = "nan_inf" 설정 후 실행: NaN이나 Inf가 가득 들어왔을 때 로봇 내비게이션 노드가 죽어버리거나(Crash), 존재하지 않는 가상의 벽이 있는 것처럼 동작하는지 확인합니다. (정상적인 필터가 있다면 이를 무시하고 주행해야 합니다.)
+
+결함 유형	원인 코드 구현 방식	자율주행 알고리즘 검증 항목
+미수신 (Drop)	return 처리로 토픽 발행 중단	주기적 체크(Timeout)를 통해 로봇이 안전 슬립(정지)하는가?
+결측치 (NaN/Inf)	float('nan'), float('inf') 주입	연산 에러(Crash) 없이 해당 데이터를 맵 연산에서 제외하는가?
+최소거리 에러	ranges[i] = 0.02 (최소 거리 이하)	로봇 바디 내부의 에러로 판단하고 유령 장애물로 처리하지 않는가?
+
+혹시 끊기기 전에 적으려 하셨던 질문이 이 내용이 맞을까요? 코드 실행 중에 **ROS 환경 설정(리맵핑 방법 등)**에서 막히는 부분이 있거나, **특정 내비게이션 스택(예: ROS2 Nav2)**을 사용 중이시라면 필요한 설정법을 더 자세히 짚어드리겠습니다.
+AI 대답에는 오류가 있을 수 있습니다. 자세히 알아보기

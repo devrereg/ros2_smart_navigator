@@ -8,9 +8,10 @@
 2. 토픽 확인: `ros2 topic list`, `ros2 topic info /scan`, `ros2 topic info /cmd_vel`
 3. 장애물 감지 테스트 (3일차 이후, B 작성)
    - 단위 테스트: `src/obstacle_detector/test/test_front_distance.py` (`colcon test --packages-select obstacle_detector`) — 정면 좌우 15도 경계, `inf`/`NaN`, 센서 범위 밖 값, 유효값 없음, 잘못된 스캔, `front_deg` 변경
-4. 장애물 회피 테스트 (4~5일차 이후, C 작성)
-5. 통합 실행 테스트 (6일차 이후, A 작성)
-6. QoS 비교 실험 테스트 (8~10일차, A·B·C 공동 작성)
+4. 장애물 회피 테스트 (4~5일차 이후, C 작성) — 아래 A절, G절
+5. 통합 실행 테스트 (6일차 이후, A 작성) — 아래 F절, 5일차 검증 기록
+6. QoS 비교 실험 테스트 (8~10일차, A·B·C 공동 작성) — [`qos_experiment.md`](qos_experiment.md)
+7. 결과 모아 보기: `python3 scripts/make_dashboard.py` → `results/dashboard.html`
 
 ## 완료 기준(초안)
 
@@ -107,6 +108,62 @@ colcon test-result --verbose
 | C-8 | `front_deg` 변경 | `test_front_deg_parameter` | 1 | 60°는 i20 포함, 30°는 제외 | 0.5 / inf | 통과 |
 
 - 한계: 이 테스트는 `front_min_distance()` 순수 함수만 검증한다. 실제 센서·시뮬레이션 연동은 통합 테스트에서 확인한다.
+
+### D. 센서 데이터와 감지 결과 일치 확인 (6일차, B)
+
+`detection_log`는 `/scan`에서 전방 최소 거리를 실제 샘플 각도로 다시 계산해 `/obstacle/front_distance`와 대조한다. `detector_node`와 다른 구현이므로 구간 정의 오류도 드러난다.
+
+```bash
+# 터미널 1
+ros2 launch obstacle_avoider avoid.launch.py world:=warehouse x_pose:=8.0 y_pose:=0.0
+# 터미널 2: 70초 뒤 Ctrl+C
+ros2 run sensor_monitor detection_log --ros-args -p out:=results/csv/detection_log.csv
+# 요약
+python3 scripts/summarize_detection.py results/csv/detection_log.csv
+```
+
+| 상태 | 뜻 | 판정 |
+|---|---|---|
+| `match` | 토픽 값 = 스캔 계산 값 (오차 1 mm 이내) | 정상 |
+| `skip_ok` | 잘못된 스캔이라 미발행 | 정상 |
+| `mismatch` | 값 불일치 | 실패 |
+| `no_topic` | 발행되어야 하는데 수신 없음 | 실패 |
+| `extra_topic` | 대응하는 스캔이 없는 토픽 | 시작·종료 직후의 1건은 정상, 그 외 실패 |
+
+CSV에는 좌·우·후방 최소 거리도 남는다. `(9.0, -15.0)` 시작 회차를 재현할 때 `avoider` 로그와 시각을 맞춰 0.12 m가 나온 방향과 시점을 확인한다.
+
+### E. 센서 이상값 회귀 테스트 (11일차, B)
+
+가짜 `/scan`을 `detector_node`에 넣어 결과를 판정한다. 시나리오는 `sensor_monitor/scan_check.py`의 `SCENARIOS`에 있고, 단위 테스트도 같은 시나리오를 쓴다. 전방 ±15도 경계, 측면 장애물, `NaN`·`±inf`, 센서 범위 밖 값, 잘못된 `angle_increment`를 확인한다.
+
+```bash
+bash scripts/run_sensor_regression.sh | tee results/csv/sensor_regression.md
+```
+
+### F. 실행·종료·재실행 테스트 (11일차, A)
+
+`avoid.launch.py`를 띄우고 `/obstacle/front_distance`가 들어오면 기동 완료로 본 뒤 Ctrl+C(SIGINT)로 끈다. 30초 안에 종료되고 Gazebo·bridge·감지·회피 프로세스가 남지 않아야 통과다.
+
+```bash
+bash scripts/run_restart_test.sh 5 | tee results/csv/restart_test.md
+```
+
+| 판정 항목 | 통과 기준 |
+|---|---|
+| 기동 | 90초 안에 `/obstacle/front_distance` 수신 |
+| 종료 | SIGINT 후 30초 안에 launch 종료 |
+| 잔여 프로세스 | `gz sim`, `detector_node`, `avoider`, `parameter_bridge`, `robot_state_publisher` 없음 |
+
+### G. 회피 성공률 테스트 (11일차, C)
+
+5일차 판정 대상 10곳 × 3회 = 30회를 무작위 순서로 자동 실행하고, 5일차와 같은 기준으로 판정한다. 판정 기준과 30회의 근거는 [`avoidance.md`](avoidance.md) 참고.
+
+```bash
+bash scripts/run_avoid_trials.sh          # 약 30회 x 2.5분
+```
+
+- 결과: `results/csv/avoid/avoid_trials.csv`(회차별 1행), `avoid_trials.md`(요약, 성공률과 95% CI), `avoid_trace_*.csv`(시점별 거리·명령), `launch_*.log`(`avoider` 상태 전환).
+- 완료 기준: 판정 대상 중 80% 이상 통과. 95% CI 하한까지 80% 이상이면 통계적으로도 충족.
 
 ## 검증 기록
 

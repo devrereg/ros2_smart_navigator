@@ -5,9 +5,10 @@
 | 토픽 | 메시지 타입 | Publisher | Subscriber | QoS | 비고 |
 |---|---|---|---|---|---|
 | `/scan` | `sensor_msgs/msg/LaserScan` | Gazebo/TurtleBot3 | 장애물 감지 노드 `detector_node` (B) | Reliable, Volatile | Publisher는 `ros_gz_bridge`. 구독 시 QoS를 맞출 것 (아래 참고). `sensor_monitor/LaserScan_sub`는 디버그용 보조 구독자 |
-| `/obstacle/front_distance` | `std_msgs/msg/Float32` | 장애물 감지 노드 `detector_node` (B) | 회피 로직 노드 `avoider` (C) | Reliable, Volatile (기본) | 정면 좌우 15도(`front_deg`=30, 전체 폭)의 최소 유효 거리(m). 유효값이 없으면 `inf`. 잘못된 스캔은 발행하지 않으며, 구독측은 `scan_timeout` 동안 수신이 없으면 안전 정지 |
+| `/obstacle/front_distance` | `std_msgs/msg/Float32` | 장애물 감지 노드 `detector_node` (B) | 회피 로직 노드 `avoider` (C) | Reliable, Volatile (기본) | 정면 좌우 15도(`front_deg`=30, 전체 폭)의 최소 유효 거리(m). 유효값이 없으면 `inf`, 측정하기엔 너무 가까우면 `-inf`. 잘못된 스캔과 전방 전체 `NaN`은 발행하지 않으며, 구독측은 `scan_timeout` 동안 수신이 없으면 안전 정지 |
 | `/cmd_vel` | `geometry_msgs/msg/TwistStamped` | 회피 로직 노드 (C) | TurtleBot3 (`ros_gz_bridge`) | Reliable, Volatile | **`Twist`가 아님.** 헤더(`stamp`, `frame_id`)를 채워 발행해야 함 |
-| `/benchmark/...` | 미정 (8일차 설계) | experiment_monitor | experiment_monitor | 실험별 가변 | QoS 실험용, 주행 토픽과 분리 |
+| `/scan`, `/obstacle/front_distance`, `/odom`, `/cmd_vel` | (위와 같음) | (위와 같음) | `sensor_monitor/avoid_trial` (검증) | 기본 | 회피 시험 감시 전용. 발행하지 않음. `avoid_trials.csv`, `avoid_trace_*.csv` 기록 |
+| `/benchmark/data` | `std_msgs/msg/UInt8MultiArray` | `sensor_monitor/benchmark_pub` | `sensor_monitor/benchmark_sub` | 실험별 가변 (depth 10) | QoS 실험용, 주행 토픽과 분리. payload 앞 16바이트는 `seq`, `send_time_ns` |
 
 ## 확인된 사항 (A, ROS 2 Jazzy + Gazebo Harmonic, TurtleBot3 기본 월드)
 
@@ -23,7 +24,7 @@
 
 - 계산은 `obstacle_detector.front_distance.front_min_distance(msg, front_deg)` 한 곳에서만 한다. `detector_node`와 `sensor_monitor/LaserScan_sub`가 이를 호출한다.
 - `avoider`는 `/scan`을 직접 구독하지 않고 `/obstacle/front_distance`만 구독한다.
-- `inf`·`NaN`과 센서 범위(`range_min` ~ `range_max`) 밖의 값은 제외한다. 경계값 자체(`range_min`, `range_max`)도 제외한다.
+- `+inf`·`NaN`과 센서 범위(`range_min` ~ `range_max`) 밖의 값은 제외한다. 경계값 자체(`range_min`, `range_max`)도 제외한다. `-inf`는 "너무 가까움"(REP 117)이므로 그대로 반환한다.
 
 ## 통합 실행 순서와 데이터 흐름
 

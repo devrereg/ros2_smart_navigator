@@ -24,6 +24,8 @@ class BenchmarkPub(Node):
         self.declare_parameter('rate_hz', 10)            # 초당 발행 횟수
         self.declare_parameter('duration_sec', 30.0)       # 발행 시간(초)
         self.declare_parameter('payload_bytes', 64)        # 메시지 1건 크기(바이트)
+        self.declare_parameter('settle_sec', 2.0)          # 매칭 후 발행 시작까지 대기(초)
+        self.declare_parameter('drain_sec', 2.0)           # 발행 후 종료까지 대기(초)
 
         # get_parameter: 등록해 둔 파라미터를 코드 안에서 실제로 읽어옴
         reliability = self.get_parameter('reliability').value
@@ -58,6 +60,12 @@ class BenchmarkPub(Node):
         self.seq += 1
 
 
+def spin_for(node, seconds):
+    deadline = time.monotonic() + seconds
+    while rclpy.ok() and time.monotonic() < deadline:
+        rclpy.spin_once(node, timeout_sec=0.05)
+
+
 def main():
     rclpy.init()
     node = BenchmarkPub()
@@ -69,12 +77,17 @@ def main():
                 node.get_logger().error(f"30초 동안 '{node.pub.topic_name}' 토픽의 subscriber와 매칭되지 않았습니다. "
                                         "subscriber 노드 실행 여부, 토픽 이름/타입, QoS 호환성, ROS_DOMAIN_ID를 확인하세요. "
                                         f"(확인: ros2 topic info -v {node.pub.topic_name})")
-                return
+                return 1  # 실험 스크립트가 실패를 알 수 있도록 0이 아닌 값으로 종료
             rclpy.spin_once(node, timeout_sec=0.1)
+        # pub 쪽 매칭이 끝나도 sub 쪽 매칭은 늦을 수 있다. 그 사이 유실을 QoS 차이로 오인하지 않게 기다린다
+        spin_for(node, node.get_parameter('settle_sec').value)
         node.start()
         # spin 대신 spin_once 반복: total 건을 다 보내면 루프를 빠져나와 자동 종료
         while rclpy.ok() and node.seq < node.total:
             rclpy.spin_once(node)
+        # 추가 발행을 막고, 곧바로 노드를 없애면 마지막 메시지가 끊기므로 전달될 시간을 준다
+        node.timer.cancel()
+        spin_for(node, node.get_parameter('drain_sec').value)
         node.get_logger().info(f'발행 완료: {node.seq}건')
     except (KeyboardInterrupt, ExternalShutdownException):
         pass

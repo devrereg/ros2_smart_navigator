@@ -12,7 +12,7 @@
 | 환경 | ROS 2 Jazzy, Gazebo Sim 8.15.0 (Harmonic), RMW `rmw_fastrtps_cpp` (A 환경 확인 완료) |
 | 로봇 / 맵 | TurtleBot3 Burger / 기본 `turtlebot3_world`, `worlds/warehouse.world`(Clearpath) 추가. 실행 시 `world:=<이름>`으로 선택, 추후 자체 제작 맵 예정 |
 | 시뮬레이션 실행 | A 환경에서 실행 및 브리지 연결 확인 완료 |
-| 구현 코드 | `sensor_monitor`(디버그용 구독), `obstacle_detector`(감지 노드·공통 함수), `obstacle_avoider`(수동 주행·상태 머신 회피). `experiment_monitor`는 빈 폴더 |
+| 구현 코드 | `sensor_monitor`(디버그용 구독, 감지 검증 도구, QoS 벤치마크 노드), `obstacle_detector`(감지 노드·공통 함수), `obstacle_avoider`(수동 주행·상태 머신 회피). `experiment_monitor`는 빈 폴더 |
 | `/scan` | `sensor_msgs/msg/LaserScan`, QoS Reliable·Volatile |
 | `/cmd_vel` | **`geometry_msgs/msg/TwistStamped`** (`Twist` 아님), QoS Reliable·Volatile |
 | 진행 중 브랜치 | `14-ryubengock` (5일차 통합 테스트, [기록](2026-10-25-day5-integration-test.md)). 이전 `7-ryubengock`: 4일차 B·C 작업 병합 완료, `detector_node.py` 충돌 마커 제거는 커밋 전 상태 ([기록](2026-10-20-detector-conflict-fix.md)). launch 맵 선택은 [기록](2026-10-19-launch-world-arg.md), 감지/회피 분리는 [기록](2026-10-19-detector-topic-split.md) |
@@ -36,7 +36,11 @@
 - [ ] `worlds/turtlebot3_burger.world`에 `gz-sim-sensors-system` 플러그인 추가 (이 world를 쓸 때만 필요, 현재는 `warehouse` 사용)
 - [ ] warehouse 맵 스폰 위치·시나리오 정리 (사용 불가: `(5.0, -6.0)`, `(-8.0, -8.0)`), launch에 시작 방향(yaw) 인자 추가 검토
 - [ ] `(9.0, -15.0)` 시작에서 최소 거리 0.12 m가 나온 원인 확인 (C·B), 정면 ±15도 밖 장애물 대응 범위 논의
-- [ ] B에게 충돌 마커 push 경위 공유, 경계값 로그를 A 버전 `detector_node` 위에 다시 추가 (4일차 B 업무), `benchmark_pub/sub`와의 관계 확인
+- [ ] B에게 충돌 마커 push 경위 공유, 경계값 로그를 A 버전 `detector_node` 위에 다시 추가 (4일차 B 업무)
+- [ ] 2026-11-03 추가한 검증 노드와 실험 스크립트를 ROS 2 환경에서 실행 확인
+- [ ] 11일차 시험 실행: `run_avoid_trials.sh`(30회), `run_restart_test.sh`, `run_sensor_regression.sh` 후 `make_dashboard.py`로 확인하고 README 결과 요약·`retrospective.md` 채우기 ([기록](2026-11-09-avoid-trials-restart-and-docs.md))
+- [ ] 시연 녹화본을 `media/demo/`에 저장 (`docs/presentation.md`)
+- [ ] QoS 실험 10회·무작위 순서로 실행 후 `make_dashboard.py`로 결과 확인, 반복 횟수 변경과 scipy 의존성 팀 공유 ([기록](2026-11-09-qos-stats-and-dashboard.md)) ([기록](2026-11-03-sensor-check-and-qos-pipeline.md))
 - [ ] 맵 제작 방향 확정 (팀원과 상의, 담당·일정 미정)
 - [ ] B, C의 `docs/environment.md` 환경 기록 표 채우기
 - [ ] 클린 환경에서 `docs/getting_started.md`의 설치 절차 검증
@@ -48,6 +52,9 @@
 
 | 날짜 | 담당 | 제목 | 파일 |
 |---|---|---|---|
+| 2026-11-09 | A·C·공동 | 회피 성공률·재실행 시험 도구, 아키텍처·회피·발표 문서 | [2026-11-09-avoid-trials-restart-and-docs.md](2026-11-09-avoid-trials-restart-and-docs.md) |
+| 2026-11-09 | B | QoS 실험 설계 보완(무작위화·10회·통계 검정)과 테스트 대시보드 | [2026-11-09-qos-stats-and-dashboard.md](2026-11-09-qos-stats-and-dashboard.md) |
+| 2026-11-03 | B | 센서 검증 도구와 QoS 실험 파이프라인 | [2026-11-03-sensor-check-and-qos-pipeline.md](2026-11-03-sensor-check-and-qos-pipeline.md) |
 | 2026-10-25 | A | 5일차 통합 테스트 결과 기록 (정지·회피 9/10회) | [2026-10-25-day5-integration-test.md](2026-10-25-day5-integration-test.md) |
 | 2026-10-20 | A | burger.world 경로 수정, spawn_robot:=false 시 bridge 누락 수정 | [2026-10-20-world-path-and-bridge.md](2026-10-20-world-path-and-bridge.md) |
 | 2026-10-20 | A | detector_node 리베이스 충돌 마커 제거 | [2026-10-20-detector-conflict-fix.md](2026-10-20-detector-conflict-fix.md) |
